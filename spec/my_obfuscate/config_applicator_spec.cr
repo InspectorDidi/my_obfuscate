@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "../spec_helper"
 
 describe MyObfuscate::ConfigApplicator do
 
@@ -31,8 +31,8 @@ describe MyObfuscate::ConfigApplicator do
         expect(new_row[0]).to eq(nil)
         expect(new_row[1]).to eq("123")
 
-        new_row = MyObfuscate::ConfigApplicator.apply_table_config(['', "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => :blank}, :b=> {:type => :fixed, :string => "123", :unless => :blank}}, [:a, :b, :c])
-        expect(new_row[0]).to eq('')
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => :blank}, :b=> {:type => :fixed, :string => "123", :unless => :blank}}, [:a, :b, :c])
+        expect(new_row[0]).to eq("")
         expect(new_row[1]).to eq("123")
       end
 
@@ -48,7 +48,7 @@ describe MyObfuscate::ConfigApplicator do
         expect(new_row[0]).to eq("123")
         expect(new_row[1]).to eq("something_else")
 
-        new_row = MyObfuscate::ConfigApplicator.apply_table_config(['', "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :if => :blank}, :b=> {:type => :fixed, :string => "123", :if => :blank}}, [:a, :b, :c])
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :if => :blank}, :b=> {:type => :fixed, :string => "123", :if => :blank}}, [:a, :b, :c])
         expect(new_row[0]).to eq("123")
         expect(new_row[1]).to eq("something_else")
       end
@@ -110,7 +110,7 @@ describe MyObfuscate::ConfigApplicator do
       while !looking_for.empty? && guard < 1000
         new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a => {:type => :fixed, :one_of => ["hello", "world"]}}, [:a, :b, :c])
         expect(new_row.length).to eq(3)
-        expect(original_looking_for).to include(new_row[0])
+        expect(original_looking_for).to contain(new_row[0])
         looking_for.delete new_row[0]
         guard += 1
       end
@@ -137,9 +137,9 @@ describe MyObfuscate::ConfigApplicator do
     end
 
     it "should keep the value when given an unknown type, but should display a warning" do
-      $stderr = error_output = StringIO.new
+      # $stderr = error_output = StringIO.new
       new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => {:type => :unknown_type}}, [:a, :b, :c])
-      $stderr = STDERR
+      # $stderr = STDERR
       expect(new_row.length).to eq(3)
       expect(new_row[1]).to eq("something_else")
       error_output.rewind
@@ -232,18 +232,18 @@ describe MyObfuscate::ConfigApplicator do
 
     describe "when faker generates values with quotes in them" do
       before do
-        allow(FFaker::Address).to receive(:city).and_return("O'ReillyTown")
-        allow(FFaker::Name).to receive(:name).and_return("Foo O'Reilly")
-        allow(FFaker::Name).to receive(:first_name).and_return("O'Foo")
-        allow(FFaker::Name).to receive(:last_name).and_return("O'Reilly")
-        allow(FFaker::Lorem).to receive(:sentences).with(any_args).and_return(["Foo bar O'Thingy"])
+        allow(FFaker::Address).to receive(:city).and_return("O\"ReillyTown")
+        allow(FFaker::Name).to receive(:name).and_return("Foo O\"Reilly")
+        allow(FFaker::Name).to receive(:first_name).and_return("O\"Foo")
+        allow(FFaker::Name).to receive(:last_name).and_return("O\"Reilly")
+        allow(FFaker::Lorem).to receive(:sentences).with(any_args).and_return(["Foo bar O\"Thingy"])
       end
 
       it "should remove single quotes from the value" do
         new_row = MyObfuscate::ConfigApplicator.apply_table_config(["address", "city", "first", "last", "fullname", "some text"],
                   {:a => :address, :b => :city, :c => :first_name, :d => :last_name, :e => :name, :f => :lorem},
                   [:a, :b, :c, :d, :e, :f])
-        new_row.each {|value| expect(value).not_to include("'")}
+        new_row.each {|value| expect(value).not_to contain("\"")}
       end
     end
   end
@@ -260,7 +260,7 @@ describe MyObfuscate::ConfigApplicator do
     end
 
     after do
-      MyObfuscate::ConfigApplicator.class_variable_set(:@@walker_method, nil)
+      # MyObfuscate::ConfigApplicator.class_variable_set(:@@walker_method, nil)
     end
 
     it "should only load file data once" do

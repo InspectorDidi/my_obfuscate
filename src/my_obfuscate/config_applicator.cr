@@ -81,7 +81,7 @@ class MyObfuscate
           when :keep
             row[index]
           else
-            $stderr.puts "Keeping a column value by providing an unknown type (#{definition[:type]}) is deprecated.  Use :keep instead."
+            STDERR.puts "Keeping a column value by providing an unknown type (#{definition[:type]}) is deprecated.  Use :keep instead."
             row[index]
         end
       end
@@ -89,13 +89,13 @@ class MyObfuscate
     end
 
     def self.row_as_hash(row, columns)
-      columns.zip(row).inject({}) {|m, (name, value)| m[name] = value; m}
+      columns.zip(row).inject({} of String => String) {|m, (name, value)| m[name] = value; m}
     end
 
     def self.make_conditional_method(conditional_method, index, row)
       if conditional_method.is_a?(Symbol)
         if conditional_method == :blank
-          conditional_method = lambda { |row_hash| row[index].nil? || row[index] == '' }
+          conditional_method = lambda { |row_hash| row[index].nil? || row[index] == "" }
         elsif conditional_method == :nil
           conditional_method = lambda { |row_hash| row[index].nil? }
         end
@@ -117,8 +117,8 @@ class MyObfuscate
 
     def self.random_english_sentences(num)
       @@walker_method ||= begin
-        words, counts = [], []
-        File.read(File.expand_path(File.join(File.dirname(__FILE__), 'data', 'en_50K.txt'))).each_line do |line|
+        words, counts = [] of String, [] of String
+        File.read(File.expand_path(File.join(File.dirname(__FILE__), "data", "en_50K.txt"))).each_line do |line|
           word, count = line.split(/\s+/)
           words << word
           counts << count.to_i
@@ -126,9 +126,9 @@ class MyObfuscate
         WalkerMethod.new(words, counts)
       end
 
-      sentences = []
+      sentences = [] of String
       num.times do
-        words = []
+        words = [] of String
         (3 + rand * 5).to_i.times { words << @@walker_method.random }
         sentences << words.join(" ") + "."
         sentences.last[0] = sentences.last[0].upcase
@@ -137,11 +137,11 @@ class MyObfuscate
     end
 
     def self.clean_quotes(value)
-      value.gsub(/['"]/, '')
+      value.gsub(/['"]/, "")
     end
 
     def self.clean_bad_whitespace(value)
-      value.gsub(/[\n\t\r]/, '')
+      value.gsub(/[\n\t\r]/, "")
     end
 
   end

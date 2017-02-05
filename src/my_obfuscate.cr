@@ -1,22 +1,21 @@
-require 'jcode' if RUBY_VERSION < '1.9'
-require 'digest/md5'
-require 'ffaker'
-require 'walker_method'
+require "crypto/md5"
+require "faker"
+require "walker_method"
 
 # Class for obfuscating MySQL dumps. This can parse mysqldump outputs when using the -c option, which includes
 # column names in the insert statements.
 class MyObfuscate
-  attr_accessor :config, :globally_kept_columns, :fail_on_unspecified_columns, :database_type, :scaffolded_tables
+  property :config, :globally_kept_columns, :fail_on_unspecified_columns, :database_type, :scaffolded_tables
 
   NUMBER_CHARS = "1234567890"
   USERNAME_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_" + NUMBER_CHARS
-  SENSIBLE_CHARS = USERNAME_CHARS + '+-=[{]}/?|!@#$%^&*()`~'
+  SENSIBLE_CHARS = USERNAME_CHARS + "+-=[{]}/?|!@#$%^&*()`~"
 
   # Make a new MyObfuscate object.  Pass in a configuration structure to define how the obfuscation should be
   # performed.  See the README.rdoc file for more information.
-  def initialize(configuration = {})
+  def initialize(configuration = {} of String => Symbol)
     @config = configuration
-    @scaffolded_tables = {}
+    @scaffolded_tables = {} of String => Int32
   end
 
   def fail_on_unspecified_columns?
@@ -60,7 +59,7 @@ class MyObfuscate
   end
 
   def extra_column_list(table_name, columns)
-    config_columns = (config[table_name] || {}).keys
+    config_columns = (config[table_name] || {} of String => String).keys
     config_columns - columns
   end
 
@@ -75,8 +74,8 @@ class MyObfuscate
   end
 
   def missing_column_list(table_name, columns)
-    config_columns = (config[table_name] || {}).keys
-    columns - (config_columns + (globally_kept_columns || []).map {|i| i.to_sym}).uniq
+    config_columns = (config[table_name] || {} of String => String).keys
+    columns - (config_columns + (globally_kept_columns || [] of String).map {|i| i.to_sym}).uniq
   end
 
   def check_for_table_columns_not_in_definition(table_name, columns)
@@ -107,10 +106,4 @@ class MyObfuscate
 
 end
 
-require 'my_obfuscate/copy_statement_parser'
-require 'my_obfuscate/insert_statement_parser'
-require 'my_obfuscate/config_scaffold_generator'
-require 'my_obfuscate/mysql'
-require 'my_obfuscate/sql_server'
-require 'my_obfuscate/postgres'
-require 'my_obfuscate/config_applicator'
+require "./my_obfuscate/*"

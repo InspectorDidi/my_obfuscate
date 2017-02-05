@@ -1,11 +1,11 @@
-require 'spec_helper'
+require "../spec_helper"
 
 describe MyObfuscate::Postgres do
 
   let(:helper) { MyObfuscate::Postgres.new }
 
   describe "#rows_to_be_inserted" do
-    it 'splits tab seperated values' do
+    it "splits tab seperated values" do
       line = "1	2	3	4"
       expect(helper.rows_to_be_inserted(line)).to eq([["1","2","3","4"]])
     end
@@ -15,17 +15,17 @@ describe MyObfuscate::Postgres do
       expect(helper.rows_to_be_inserted(line)).to eq([["1","2","3","4",""]])
     end
 
-    it 'ignores the newline character at the end of string' do
+    it "ignores the newline character at the end of string" do
       line = "1	2	3	4\n"
       expect(helper.rows_to_be_inserted(line)).to eq([["1","2","3","4"]])
     end
 
-    it "doesn't ignore newlines due to empty strings" do
+    it "does not ignore newlines due to empty strings" do
       line = "1	2	3	\n"
       expect(helper.rows_to_be_inserted(line)).to eq([["1","2","3",""]])
     end
 
-    it "doesn't ignore newline characters in the string" do
+    it "does not ignore newline characters in the string" do
       line = "1	2	3\n4	5"
       expect(helper.rows_to_be_inserted(line)).to eq([["1","2","3\n4","5"]])
     end
@@ -52,7 +52,7 @@ describe MyObfuscate::Postgres do
   end
 
   describe "#parse_copy_statement" do
-    it 'parses table name and column names' do
+    it "parses table name and column names" do
       line = "COPY some_table (id, email, name, something) FROM stdin;"
       hash = helper.parse_copy_statement(line)
       expect(hash[:table_name]).to eq(:some_table)
@@ -61,8 +61,8 @@ describe MyObfuscate::Postgres do
   end
 
   describe "#make_insert_statement" do
-    it 'creates a string with tab delminted' do
-      expect(helper.make_insert_statement(:some_table, [:id, :name], ['1', '2'])).to eq("1	2")
+    it "creates a string with tab delminted" do
+      expect(helper.make_insert_statement(:some_table, [:id, :name], ["1", "2"])).to eq("1	2")
     end
   end
 end

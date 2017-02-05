@@ -20,7 +20,7 @@ class MyObfuscate
         "(" + values.join(",") + ")"
       end.join(",")
 
-      "INSERT #{ignore ? 'IGNORE ' : '' }INTO `#{table_name}` (`#{column_names.join('`, `')}`) VALUES #{values_strings};"
+      "INSERT #{ignore ? "IGNORE " : "" }INTO `#{table_name}` (`#{column_names.join("`, `")}`) VALUES #{values_strings};"
     end
 
     def insert_regex
@@ -28,7 +28,7 @@ class MyObfuscate
     end
 
     def rows_to_be_inserted(line)
-      line = line.gsub(insert_regex, '').gsub(/\s*;\s*$/, '')
+      line = line.gsub(insert_regex, "").gsub(/\s*;\s*$/, "")
       context_aware_mysql_string_split(line)
     end
 
@@ -49,8 +49,8 @@ class MyObfuscate
       escaped = false
       current_field = nil
       length = string.length
-      fields = []
-      output = []
+      fields = [] of String
+      output = [] of String
 
       string.each_char do |i|
         if escaped
@@ -68,11 +68,11 @@ class MyObfuscate
             fields << current_field unless current_field.nil?
             output << fields unless fields.length == 0
             in_sub_insert = false
-            fields = []
+            fields = [] of String
             current_field = nil
           elsif i == "'" && !in_quoted_string
             fields << current_field unless current_field.nil?
-            current_field = ''
+            current_field = ""
             in_quoted_string = true
           elsif i == "'" && in_quoted_string
             fields << current_field unless current_field.nil?

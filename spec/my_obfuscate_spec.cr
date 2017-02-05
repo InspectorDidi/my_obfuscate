@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "./spec_helper"
 
 describe MyObfuscate do
   describe "MyObfuscate.reassembling_each_insert" do
@@ -27,7 +27,7 @@ describe MyObfuscate do
 
     describe "when using Postgres" do
       let(:dump) do
-        StringIO.new(<<-SQL)
+string = <<-SQL
 COPY some_table (id, email, name, something, age) FROM stdin;
 1	hello	monkey	moose	14
 \.
@@ -46,7 +46,8 @@ COPY another_table (a, b, c, d) FROM stdin;
 COPY some_table_to_keep (a, b) FROM stdin;
 5	6
 \.
-        SQL
+SQL
+        StringIO.new(string)
       end
 
       let(:obfuscator) do
@@ -99,16 +100,16 @@ COPY some_table_to_keep (a, b) FROM stdin;
       end
 
       it "is able to obfuscate single column tables" do
-        expect(output_string).not_to include("1\n2\n")
+        expect(output_string).not_to contain("1\n2\n")
         expect(output_string).to match(/\d\n\d\n/)
       end
 
       it "is able to truncate tables" do
-        expect(output_string).not_to include("1\t2\t3\t4")
+        expect(output_string).not_to contain("1\t2\t3\t4")
       end
 
       it "can obfuscate the tables" do
-        expect(output_string).to include("COPY some_table (id, email, name, something, age) FROM stdin;\n")
+        expect(output_string).to contain("COPY some_table (id, email, name, something, age) FROM stdin;\n")
         expect(output_string).to match(/1\t.*\t\S{8}\tmoose\t\d{2}\n/)
       end
 
@@ -117,14 +118,15 @@ COPY some_table_to_keep (a, b) FROM stdin;
       end
 
       it "is able to keep tables" do
-        expect(output_string).to include("5\t6")
+        expect(output_string).to contain("5\t6")
       end
 
       context "when dump contains INSERT statement" do
         let(:dump) do
-          StringIO.new(<<-SQL)
+          string = <<-SQL
           INSERT INTO some_table (email, name, something, age) VALUES ('','', '', 25);
           SQL
+          StringIO.new(string)
         end
 
         it "raises an error if using postgres with insert statements" do
@@ -159,9 +161,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when the dump to obfuscate is missing columns" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -181,13 +184,14 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is something to obfuscate" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54),('dontmurderme@direwolf.com','direwolf', 'somethingelse3', 44);
           INSERT INTO `another_table` (`a`, `b`, `c`, `d`) VALUES (1,2,3,4), (5,6,7,8);
           INSERT INTO `some_table_to_keep` (`a`, `b`, `c`, `d`) VALUES (1,2,3,4), (5,6,7,8);
           INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','kjhjd^&dkjh', 'aawefjkafe'), ('hello1','kjhj!', 892938), ('hello2','moose!!', NULL);
           INSERT INTO `an_ignored_table` (`col`, `col2`) VALUES ('hello','kjhjd^&dkjh'), ('hello1','kjhj!'), ('hello2','moose!!');
           SQL
+          @database_dump = StringIO.new(string)
 
           @ddo = MyObfuscate.new({
                                      :some_table => {
@@ -204,51 +208,52 @@ COPY some_table_to_keep (a, b) FROM stdin;
                                      }
                                  })
           @output = StringIO.new
-          $stderr = @error_output = StringIO.new
+          # STDERR = @error_output = StringIO.new
           @ddo.obfuscate(@database_dump, @output)
-          $stderr = STDERR
+          # $stderr = STDERR
           @output.rewind
           @output_string = @output.read
         end
 
         it "should be able to truncate tables" do
-          expect(@output_string).not_to include("INSERT INTO `another_table`")
-          expect(@output_string).to include("INSERT INTO `one_more_table`")
+          expect(@output_string).not_to contain("INSERT INTO `another_table`")
+          expect(@output_string).to contain("INSERT INTO `one_more_table`")
         end
 
         it "should be able to declare tables to keep" do
-          expect(@output_string).to include("INSERT INTO `some_table_to_keep` (`a`, `b`, `c`, `d`) VALUES (1,2,3,4), (5,6,7,8);")
+          expect(@output_string).to contain("INSERT INTO `some_table_to_keep` (`a`, `b`, `c`, `d`) VALUES (1,2,3,4), (5,6,7,8);")
         end
 
         it "should ignore tables that it doesn't know about, but should warn" do
-          expect(@output_string).to include("INSERT INTO `an_ignored_table` (`col`, `col2`) VALUES ('hello','kjhjd^&dkjh'), ('hello1','kjhj!'), ('hello2','moose!!');")
+          expect(@output_string).to contain("INSERT INTO `an_ignored_table` (`col`, `col2`) VALUES ('hello','kjhjd^&dkjh'), ('hello1','kjhj!'), ('hello2','moose!!');")
           @error_output.rewind
           expect(@error_output.read).to match(/an_ignored_table was not specified in the config/)
         end
 
         it "should obfuscate the tables" do
-          expect(@output_string).to include("INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES (")
-          expect(@output_string).to include("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES (")
-          expect(@output_string).to include("'some\\'thin,ge())lse1'")
-          expect(@output_string).to include("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','monkey',NULL),('hello1','monkey',NULL),('hello2','monkey',NULL);")
-          expect(@output_string).not_to include("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','kjhjd^&dkjh', 'aawefjkafe'), ('hello1','kjhj!', 892938), ('hello2','moose!!', NULL);")
-          expect(@output_string).not_to include("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','kjhjd^&dkjh','aawefjkafe'),('hello1','kjhj!',892938),('hello2','moose!!',NULL);")
-          expect(@output_string).not_to include("INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);")
+          expect(@output_string).to contain("INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES (")
+          expect(@output_string).to contain("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES (")
+          expect(@output_string).to contain("'some\\'thin,ge())lse1'")
+          expect(@output_string).to contain("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','monkey',NULL),('hello1','monkey',NULL),('hello2','monkey',NULL);")
+          expect(@output_string).not_to contain("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','kjhjd^&dkjh', 'aawefjkafe'), ('hello1','kjhj!', 892938), ('hello2','moose!!', NULL);")
+          expect(@output_string).not_to contain("INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','kjhjd^&dkjh','aawefjkafe'),('hello1','kjhj!',892938),('hello2','moose!!',NULL);")
+          expect(@output_string).not_to contain("INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);")
         end
 
         it "honors a special case: on the people table, rows with skip_regexes that match are skipped" do
-          expect(@output_string).to include("('bob@honk.com',")
-          expect(@output_string).to include("('dontmurderme@direwolf.com',")
-          expect(@output_string).not_to include("joe@joe.com")
-          expect(@output_string).to include("example.com")
+          expect(@output_string).to contain("('bob@honk.com',")
+          expect(@output_string).to contain("('dontmurderme@direwolf.com',")
+          expect(@output_string).not_to contain("joe@joe.com")
+          expect(@output_string).to contain("example.com")
         end
       end
 
       context "when fail_on_unspecified_columns is set to true" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54),('dontmurderme@direwolf.com','direwolf', 'somethingelse3', 44);
           SQL
+          @database_dump = StringIO.new(string)
 
           @ddo = MyObfuscate.new({
                                      :some_table => {
@@ -276,9 +281,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is an existing config to scaffold" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT IGNORE INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -310,9 +316,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when using :secondary_address" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`, `address1`, `address2`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25, '221B Baker St', 'Suite 100'),('joe@joe.com','joe', 'somethingelse2', 54, '1300 Pennsylvania Ave', '2nd floor');
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -329,21 +336,22 @@ COPY some_table_to_keep (a, b) FROM stdin;
         end
 
         it "should obfuscate address1" do
-          expect(@output_string).to include("address1")
-          expect(@output_string).not_to include("Baker St")
+          expect(@output_string).to contain("address1")
+          expect(@output_string).not_to contain("Baker St")
         end
 
         it "should obfuscate address2" do
-          expect(@output_string).to include("address2")
-          expect(@output_string).not_to include("Suite 100")
+          expect(@output_string).to contain("address2")
+          expect(@output_string).not_to contain("Suite 100")
         end
       end
 
       context "when there is an existing config to scaffold" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`, `address1`, `address2`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25, '221B Baker St', 'Suite 100'),('joe@joe.com','joe', 'somethingelse2', 54, '1300 Pennsylvania Ave', '2nd floor');
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -372,9 +380,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is an existing config to scaffold with both missing and extra columns" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT IGNORE INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -399,9 +408,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is an existing config to scaffold and it is just right" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -417,16 +427,17 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
         it "should say that everything is present and accounted for" do
           expect(@output_string).to match(/^\s*\#.*account/)
-          expect(@output_string).not_to include("scaffold")
-          expect(@output_string).not_to include(":some_table")
+          expect(@output_string).not_to contain("scaffold")
+          expect(@output_string).not_to contain(":some_table")
         end
       end
 
       context "when scaffolding a table with no existing config" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age_of_the_individual_who_is_specified_by_this_row_of_the_table`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_other_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -475,9 +486,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when the dump to obfuscate is missing columns" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo =  MyObfuscate.new({
               :some_table => {
                   :email => {:type => :email, :honk_email_skip => true},
@@ -497,7 +509,7 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is something to obfuscate" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age], [bday]) VALUES (N'bob@honk.com',N'bob', N'some''thin,ge())lse1', 25, CAST(0x00009E1A00000000 AS DATETIME));
           INSERT [dbo].[some_table] ([email], [name], [something], [age], [bday]) VALUES (N'joe@joe.com',N'joe', N'somethingelse2', 54, CAST(0x00009E1A00000000 AS DATETIME));
           INSERT [dbo].[some_table] ([email], [name], [something], [age], [bday]) VALUES (N'dontmurderme@direwolf.com',N'direwolf', N'somethingelse3', 44, CAST(0x00009E1A00000000 AS DATETIME));
@@ -512,6 +524,7 @@ COPY some_table_to_keep (a, b) FROM stdin;
           INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello1',N'kjhj!');
           INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello2',N'moose!!');
           SQL
+          @database_dump = StringIO.new(string)
 
           @ddo = MyObfuscate.new({
                :some_table => {
@@ -531,58 +544,59 @@ COPY some_table_to_keep (a, b) FROM stdin;
           @ddo.database_type = :sql_server
 
           @output = StringIO.new
-          $stderr = @error_output = StringIO.new
+          # STDERR = @error_output = StringIO.new
           @ddo.obfuscate(@database_dump, @output)
-          $stderr = STDERR
+          # $stderr = STDERR
           @output.rewind
           @output_string = @output.read
         end
 
         it "should be able to truncate tables" do
-          expect(@output_string).not_to include("INSERT [dbo].[another_table]")
-          expect(@output_string).to include("INSERT [dbo].[one_more_table]")
+          expect(@output_string).not_to contain("INSERT [dbo].[another_table]")
+          expect(@output_string).to contain("INSERT [dbo].[one_more_table]")
         end
 
         it "should be able to declare tables to keep" do
-          expect(@output_string).to include("INSERT [dbo].[some_table_to_keep] ([a], [b], [c], [d]) VALUES (1,2,3,4);")
-          expect(@output_string).to include("INSERT [dbo].[some_table_to_keep] ([a], [b], [c], [d]) VALUES (5,6,7,8);")
+          expect(@output_string).to contain("INSERT [dbo].[some_table_to_keep] ([a], [b], [c], [d]) VALUES (1,2,3,4);")
+          expect(@output_string).to contain("INSERT [dbo].[some_table_to_keep] ([a], [b], [c], [d]) VALUES (5,6,7,8);")
         end
 
         it "should ignore tables that it doesn't know about, but should warn" do
-          expect(@output_string).to include("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello',N'kjhjd^&dkjh');")
-          expect(@output_string).to include("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello1',N'kjhj!');")
-          expect(@output_string).to include("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello2',N'moose!!');")
+          expect(@output_string).to contain("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello',N'kjhjd^&dkjh');")
+          expect(@output_string).to contain("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello1',N'kjhj!');")
+          expect(@output_string).to contain("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello2',N'moose!!');")
           @error_output.rewind
           expect(@error_output.read).to match(/an_ignored_table was not specified in the config/)
         end
 
         it "should obfuscate the tables" do
-          expect(@output_string).to include("INSERT [dbo].[some_table] ([email], [name], [something], [age], [bday]) VALUES (")
-          expect(@output_string).to include("CAST(0x00009E1A00000000 AS DATETIME)")
-          expect(@output_string).to include("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (")
-          expect(@output_string).to include("'some''thin,ge())lse1'")
-          expect(@output_string).to include("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello',N'monkey',NULL);")
-          expect(@output_string).to include("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello1',N'monkey',NULL);")
-          expect(@output_string).to include("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello2',N'monkey',NULL);")
-          expect(@output_string).not_to include("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello',N'kjhjd^&dkjh', N'aawefjkafe');")
-          expect(@output_string).not_to include("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello1',N'kjhj!', 892938);")
-          expect(@output_string).not_to include("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello2',N'moose!!', NULL);")
-          expect(@output_string).not_to include("INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES (N'bob@honk.com',N'bob', N'some''thin,ge())lse1', 25, CAST(0x00009E1A00000000 AS DATETIME));")
-          expect(@output_string).not_to include("INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES (N'joe@joe.com',N'joe', N'somethingelse2', 54, CAST(0x00009E1A00000000 AS DATETIME));")
+          expect(@output_string).to contain("INSERT [dbo].[some_table] ([email], [name], [something], [age], [bday]) VALUES (")
+          expect(@output_string).to contain("CAST(0x00009E1A00000000 AS DATETIME)")
+          expect(@output_string).to contain("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (")
+          expect(@output_string).to contain("'some''thin,ge())lse1'")
+          expect(@output_string).to contain("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello',N'monkey',NULL);")
+          expect(@output_string).to contain("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello1',N'monkey',NULL);")
+          expect(@output_string).to contain("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello2',N'monkey',NULL);")
+          expect(@output_string).not_to contain("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello',N'kjhjd^&dkjh', N'aawefjkafe');")
+          expect(@output_string).not_to contain("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello1',N'kjhj!', 892938);")
+          expect(@output_string).not_to contain("INSERT [dbo].[one_more_table] ([a], [password], [c], [d,d]) VALUES (N'hello2',N'moose!!', NULL);")
+          expect(@output_string).not_to contain("INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES (N'bob@honk.com',N'bob', N'some''thin,ge())lse1', 25, CAST(0x00009E1A00000000 AS DATETIME));")
+          expect(@output_string).not_to contain("INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES (N'joe@joe.com',N'joe', N'somethingelse2', 54, CAST(0x00009E1A00000000 AS DATETIME));")
         end
 
         it "honors a special case: on the people table, rows with anything@honk.com in a slot marked with :honk_email_skip do not change this slot" do
-          expect(@output_string).to include("(N'bob@honk.com',")
-          expect(@output_string).to include("(N'dontmurderme@direwolf.com',")
-          expect(@output_string).not_to include("joe@joe.com")
+          expect(@output_string).to contain("(N'bob@honk.com',")
+          expect(@output_string).to contain("(N'dontmurderme@direwolf.com',")
+          expect(@output_string).not_to contain("joe@joe.com")
         end
       end
 
       context "when fail_on_unspecified_columns is set to true" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT INTO [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
+          @database_dump = StringIO.new(string)
 
           @ddo = MyObfuscate.new({
                                      :some_table => {
@@ -611,9 +625,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is an existing config to scaffold and it is missing columns" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -638,9 +653,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is an existing config to scaffold and it has extra columns" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -664,9 +680,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is an existing config to scaffold and it has both missing and extra columns" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -693,9 +710,10 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
       context "when there is an existing config to scaffold and it is just right" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_table => {
                                          :email => {:type => :email, :honk_email_skip => true},
@@ -713,16 +731,17 @@ COPY some_table_to_keep (a, b) FROM stdin;
 
         it "should say that everything is present and accounted for" do
           expect(@output_string).to match(/^\s*\#.*account/)
-          expect(@output_string).not_to include("scaffold")
-          expect(@output_string).not_to include(":some_table")
+          expect(@output_string).not_to contain("scaffold")
+          expect(@output_string).not_to contain(":some_table")
         end
       end
 
       context "when scaffolding a table with no existing config" do
         before do
-          @database_dump = StringIO.new(<<-SQL)
+          string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
+          @database_dump = StringIO.new(string)
           @ddo = MyObfuscate.new({
                                      :some_other_table => {
                                          :email => {:type => :email, :honk_email_skip => true},

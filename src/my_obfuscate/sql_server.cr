@@ -13,7 +13,7 @@ class MyObfuscate
     end
 
     def rows_to_be_inserted(line)
-      line = line.gsub(insert_regex, '').gsub(/\s*;?\s*$/, '').gsub(/^\(/, '').gsub(/\)$/, '')
+      line = line.gsub(insert_regex, "").gsub(/\s*;?\s*$/, "").gsub(/^\(/, "").gsub(/\)$/, "")
       context_aware_sql_server_string_split(line)
     end
 
@@ -35,18 +35,16 @@ class MyObfuscate
       "INSERT [dbo].[#{table_name}] ([#{column_names.join("], [")}]) VALUES #{values_strings};"
     end
 
-    private
-
-    def insert_regex
+    private def insert_regex
       /^\s*INSERT (?:INTO )?\[dbo\]\.\[(.*?)\] \((.*?)\) VALUES\s*/i
     end
 
-    def context_aware_sql_server_string_split(string)
+    private def context_aware_sql_server_string_split(string)
       in_quoted_string = false
       backslash_escape = false
       previous_char_single_quote = false
       current_field_value = nil
-      completed_fields = []
+      completed_fields = [] of String
 
       string.each_char do |char|
         if char == "'" && !in_quoted_string
