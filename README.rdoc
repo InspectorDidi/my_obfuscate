@@ -1,6 +1,6 @@
 = MyObfuscate
 
-{<img src="https://travis-ci.org/mavenlink/my_obfuscate.png">}[https://travis-ci.org/mavenlink/my_obfuscate]
+{<img src="https://travis-ci.org/josacar/my_obfuscate.png">}[https://travis-ci.org/josacar/my_obfuscate]
 
 You want to develop against real production data, but you don't want to violate your users' privacy.  Enter MyObfuscate: standalone Ruby code for the selective rewriting of SQL dumps in order to protect user privacy.  It supports MySQL, Postgres, and SQL Server.
 
@@ -98,8 +98,8 @@ The output will be a series of configuration statements of the form:
       :column1_name     => :keep   # scaffold
       :column2_name     => :keep   # scaffold
   	... etc.
-    
-Scaffolding also works if you have a partial configuration.  If your configuration is missing some tables or some columns, a call to 'scaffold' will pass through the configuration that exists and augment it with scaffolding for the missing tables or columns. 
+
+Scaffolding also works if you have a partial configuration.  If your configuration is missing some tables or some columns, a call to 'scaffold' will pass through the configuration that exists and augment it with scaffolding for the missing tables or columns.
 
 == Changes
 

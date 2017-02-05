@@ -1,0 +1,13 @@
+name: my_obfuscate
+version: 0.1.0
+
+dependencies:
+  walker_method:
+    github: josacar/walker_method
+  faker:
+    github: askn/faker
+
+authors:
+  - Jose Luis Salas <josacar@gmail.com>
+
+license: MIT
