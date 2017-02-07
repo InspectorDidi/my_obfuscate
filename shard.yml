@@ -4,6 +4,7 @@ version: 0.1.0
 dependencies:
   walker_method:
     github: josacar/walker_method
+    version: ~> 0.1
   faker:
     github: askn/faker
 
