@@ -8,6 +8,10 @@ dependencies:
   faker:
     github: askn/faker
 
+development_dependencies:
+  expect:
+    github: dukex/expect.cr
+
 authors:
   - Jose Luis Salas <josacar@gmail.com>
 
