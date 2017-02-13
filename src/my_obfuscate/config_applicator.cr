@@ -1,13 +1,11 @@
 class MyObfuscate
   class ConfigApplicator
 
-    def self.apply_table_config(row, table_config, columns)
+    def self.apply_table_config(row : Array(String), table_config, columns : Array(Symbol))
       return row unless table_config.is_a?(Hash)
       row_hash = row_as_hash(row, columns)
 
-      table_config.each do |column, definition|
-        index = columns.index(column)
-
+      table_config.each_with_index do |(column, definition), index|
         definition = { :type => definition } if definition.is_a?(Symbol)
 
         if definition.has_key?(:unless)
@@ -88,19 +86,20 @@ class MyObfuscate
       row
     end
 
-    def self.row_as_hash(row, columns)
-      columns.zip(row).inject({} of String => String) {|m, (name, value)| m[name] = value; m}
+    def self.row_as_hash(row : Array(Int32 | String), columns : Array(Symbol))
+      columns.zip(row).each_with_object({} of Symbol => String)  { |(name, value),m| m[name] = value }
     end
 
-    def self.make_conditional_method(conditional_method, index, row)
-      if conditional_method.is_a?(Symbol)
-        if conditional_method == :blank
-          conditional_method = lambda { |row_hash| row[index].nil? || row[index] == "" }
-        elsif conditional_method == :nil
-          conditional_method = lambda { |row_hash| row[index].nil? }
-        end
+    def self.make_conditional_method(conditional_method : (Symbol | Proc), index, row)
+      return conditional_method unless conditional_method.is_a?(Symbol)
+
+      if conditional_method == :blank
+        Proc(Hash(Symbol, String), Bool).new { |_| row[index].nil? || row[index] == "" }
+      elsif conditional_method == :nil
+        Proc(Hash(Symbol, String), Bool).new { |_| row[index].nil? }
+      else
+        raise "Error" # TODO Check if this is right
       end
-      conditional_method
     end
 
     def self.random_integer(between)
