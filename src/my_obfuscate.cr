@@ -1,4 +1,4 @@
-require "crypto/md5"
+require "digest/md5"
 require "faker"
 require "walker_method"
 

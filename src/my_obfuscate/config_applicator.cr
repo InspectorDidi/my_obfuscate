@@ -28,7 +28,7 @@ class MyObfuscate
 
         row[index] = case definition[:type]
           when :email
-            md5 = Crypto::MD5.hex_digest(rand.to_s)[0...5]
+            md5 = Digest::MD5.hexdigest(rand.to_s)[0...5]
             clean_quotes("#{Faker::Internet.email}.#{md5}.example.com")
           when :string
             random_string(definition[:length].as(Int32) || 30, definition[:chars].as(String) || SENSIBLE_CHARS)
