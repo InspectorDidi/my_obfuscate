@@ -1,6 +1,6 @@
 = MyObfuscate
 
-{<img src="https://travis-ci.org/josacar/my_obfuscate.png">}[https://travis-ci.org/josacar/my_obfuscate]
+[![Build Status](https://travis-ci.org/josacar/my_obfuscate.svg?branch=master)](https://travis-ci.org/josacar/my_obfuscate)
 
 You want to develop against real production data, but you don't want to violate your users' privacy.  Enter MyObfuscate: standalone Ruby code for the selective rewriting of SQL dumps in order to protect user privacy.  It supports MySQL, Postgres, and SQL Server.
 
