@@ -1,55 +1,57 @@
-= MyObfuscate
+# MyObfuscate
 
 [![Build Status](https://travis-ci.org/josacar/my_obfuscate.svg?branch=master)](https://travis-ci.org/josacar/my_obfuscate)
 
 You want to develop against real production data, but you don't want to violate your users' privacy.  Enter MyObfuscate: standalone Ruby code for the selective rewriting of SQL dumps in order to protect user privacy.  It supports MySQL, Postgres, and SQL Server.
 
-= Install
+# Install
 
-  (sudo) gem install my_obfuscate
+    (sudo) gem install my_obfuscate
 
-= Example Usage
+# Example Usage
 
 Make an obfuscator.rb script:
 
-  #!/usr/bin/env ruby
-  require "rubygems"
-  require "my_obfuscate"
+```ruby
+#!/usr/bin/env ruby
+require "rubygems"
+require "my_obfuscate"
 
-  obfuscator = MyObfuscate.new({
-    :people => {
-      :email                     => { :type => :email, :skip_regexes => [/^[\w\.\_]+@my_company\.com$/i] },
-      :ethnicity                 => :keep,
-      :crypted_password          => { :type => :fixed, :string => "SOME_FIXED_PASSWORD_FOR_EASE_OF_DEBUGGING" },
-      :salt                      => { :type => :fixed, :string => "SOME_THING" },
-      :remember_token            => :null,
-      :remember_token_expires_at => :null,
-      :age                       => { :type => :null, :unless => lambda { |person| person[:email] == "hello@example.com" } },
-      :photo_file_name           => :null,
-      :photo_content_type        => :null,
-      :photo_file_size           => :null,
-      :photo_updated_at          => :null,
-      :postal_code               => { :type => :fixed, :string => "94109", :unless => lambda {|person| person[:postal_code] == "12345"} },
-      :name                      => :name,
-      :full_address              => :address,
-      :bio                       => { :type => :lorem, :number => 4 },
-      :relationship_status       => { :type => :fixed, :one_of => ["Single", "Divorced", "Married", "Engaged", "In a Relationship"] },
-      :has_children              => { :type => :integer, :between => 0..1 },
-    },
+obfuscator = MyObfuscate.new({
+  :people => {
+    :email                     => { :type => :email, :skip_regexes => [/^[\w\.\_]+@my_company\.com$/i] },
+    :ethnicity                 => :keep,
+    :crypted_password          => { :type => :fixed, :string => "SOME_FIXED_PASSWORD_FOR_EASE_OF_DEBUGGING" },
+    :salt                      => { :type => :fixed, :string => "SOME_THING" },
+    :remember_token            => :null,
+    :remember_token_expires_at => :null,
+    :age                       => { :type => :null, :unless => lambda { |person| person[:email] == "hello@example.com" } },
+    :photo_file_name           => :null,
+    :photo_content_type        => :null,
+    :photo_file_size           => :null,
+    :photo_updated_at          => :null,
+    :postal_code               => { :type => :fixed, :string => "94109", :unless => lambda {|person| person[:postal_code] == "12345"} },
+    :name                      => :name,
+    :full_address              => :address,
+    :bio                       => { :type => :lorem, :number => 4 },
+    :relationship_status       => { :type => :fixed, :one_of => ["Single", "Divorced", "Married", "Engaged", "In a Relationship"] },
+    :has_children              => { :type => :integer, :between => 0..1 },
+  },
 
-    :invites                     => :truncate,
-    :invite_requests             => :truncate,
-    :tags                        => :keep,
+  :invites                     => :truncate,
+  :invite_requests             => :truncate,
+  :tags                        => :keep,
 
-    :relationships => {
-      :account_id                => :keep,
-      :code                      => { :type => :string, :length => 8, :chars => MyObfuscate::USERNAME_CHARS }
-    }
-  })
-  obfuscator.fail_on_unspecified_columns = true # if you want it to require every column in the table to be in the above definition
-  obfuscator.globally_kept_columns = %w[id created_at updated_at] # if you set fail_on_unspecified_columns, you may want this as well
-  # If you'd like to also validate against your schema.rb file to make sure all fields and tables are present, see https://gist.github.com/cantino/5376e73b0ad806dc4da4
-  obfuscator.obfuscate(STDIN, STDOUT)
+  :relationships => {
+    :account_id                => :keep,
+    :code                      => { :type => :string, :length => 8, :chars => MyObfuscate::USERNAME_CHARS }
+  }
+})
+obfuscator.fail_on_unspecified_columns = true # if you want it to require every column in the table to be in the above definition
+obfuscator.globally_kept_columns = %w[id created_at updated_at] # if you set fail_on_unspecified_columns, you may want this as well
+# If you'd like to also validate against your schema.rb file to make sure all fields and tables are present, see https://gist.github.com/cantino/5376e73b0ad806dc4da4
+obfuscator.obfuscate(STDIN, STDOUT)
+```
 
 And to get an obfuscated dump:
 
@@ -59,7 +61,7 @@ Note that the -c option on mysqldump is required to use my_obfuscator.  Addition
 is to output special characters. This may cause trouble, so you can request hex-encoded blob content with --hex-blob.
 If you get MySQL errors due to very long lines, try some combination of --max_allowed_packet=128M, --single-transaction, --skip-extended-insert, and --quick.
 
-== Database Server
+## Database Server
 
 By default the database type is assumed to be MySQL, but you can use the
 builtin SQL Server support by specifying:
@@ -71,23 +73,25 @@ If using Postgres, use pg_dump to get a dump:
 
     pg_dump database | ruby obfuscator.rb > obfuscated_dump.sql
 
-== Types
+## Types
 
 Available types include: email, string, lorem, name, first_name, last_name, address, street_address, secondary_address, city, state,
 zip_code, phone, company, ipv4, ipv6, url, integer, fixed, null, and keep.
 
-== Helping with creation of the "obfuscator.rb" script
+## Helping with creation of the "obfuscator.rb" script
 
 If you don't want to type all those table names and column names into your obfuscator.rb script,
 you can use my_obfuscate to do some of that work for you. It can consume your database dump file and create a "scaffold" for the script.
 To run my_obfuscate in this mode, start with an "empty" scaffolder.rb script as follows:
 
-  #!/usr/bin/env ruby
-  require "rubygems"
-  require "my_obfuscate"
+```ruby
+#!/usr/bin/env ruby
+require "rubygems"
+require "my_obfuscate"
 
-  obfuscator = MyObfuscate.new({})
-  obfuscator.scaffold(STDIN, STDOUT)
+obfuscator = MyObfuscate.new({})
+obfuscator.scaffold(STDIN, STDOUT)
+```
 
 Then feed in your database dump:
   mysqldump -c  --hex-blob -u user -ppassword database | ruby scaffolder.rb > obfuscator_scaffold.rb_snippet
@@ -101,7 +105,7 @@ The output will be a series of configuration statements of the form:
 
 Scaffolding also works if you have a partial configuration.  If your configuration is missing some tables or some columns, a call to 'scaffold' will pass through the configuration that exists and augment it with scaffolding for the missing tables or columns.
 
-== Changes
+## Changes
 
 * Support for Postgres.  Thanks @samuelreh!
 * Support for SQL Server
@@ -111,7 +115,7 @@ Scaffolding also works if you have a partial configuration.  If your configurati
 * Warnings are thrown when an unknown column type or table is encountered.  Use <tt>:keep</tt> in both cases.
 * <tt>{ :type => :fixed, :string => Proc { |row| ... } }</tt> is now available.
 
-== Note on Patches/Pull Requests
+## Note on Patches/Pull Requests
 
 * Fork the project.
 * Make your feature addition or bug fix.
@@ -119,11 +123,11 @@ Scaffolding also works if you have a partial configuration.  If your configurati
 * Commit, do not mess with rakefile, version, or history.  (If you want to have your own version, that is fine but bump version in a commit by itself I can ignore when I pull)
 * Send me a pull request. Bonus points for topic branches.
 
-== Thanks
+## Thanks
 
 Thanks to Honk for the original gem, Iteration Labs for prior maintenance work, and Pivotal Labs for patches and updates!
 
-== LICENSE
+## LICENSE
 
 This work is provided under the MIT License.  See the included LICENSE file.
 
