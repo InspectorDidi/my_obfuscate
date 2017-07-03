@@ -3,13 +3,15 @@ class MyObfuscate
 
     def self.apply_table_config(row, table_config, columns : Array(Symbol))
       return row unless table_config.is_a?(Hash)
-      row_hash = row_as_hash(row, columns)
+      row_hash = row_as_hash(row, columns) # {:a => "blah", :b => "something_else", :c => "5"}
 
       table_config.each_with_index do |(column, definition), index|
         definition = { :type => definition } if definition.is_a?(Symbol)
 
         if definition.has_key?(:unless)
-          unless_check = make_conditional_method(definition[:unless], index, row)
+          proc_or_symbol = definition[:unless]
+
+          unless_check = make_conditional_method(proc_or_symbol, index, row)
 
           next if unless_check.call(row_hash)
         end
@@ -70,10 +72,11 @@ class MyObfuscate
             if definition[:one_of]
               definition[:one_of].as(Array).sample
             else
-              if definition[:string].is_a?(Proc)
-                definition[:string].as(Proc).call(row_hash)
+              string = definition[:string]
+              if string.is_a?(Proc)
+                string.call(row_hash)
               else
-                definition[:string]
+                string
               end
             end
           when :null
@@ -88,18 +91,26 @@ class MyObfuscate
       row
     end
 
-    def self.row_as_hash(row : Array(String | Nil), columns : Array(Symbol))
-      columns.zip(row).each_with_object({} of Symbol => (String | Nil))  { |(name, value),m| m[name] = value }
+    alias SymbolHash = Hash(Symbol,
+                            Proc(Hash(Symbol, String), Bool) |
+                            String |
+                            Symbol |
+                            Nil |
+                            SymbolHash
+                           )
+
+    def self.row_as_hash(row : Array(String | Nil), columns : Array(Symbol)) : Hash(Symbol, String | Nil)
+      columns.zip(row).each_with_object({} of Symbol => (String | Nil) ) { |(name, value),m| m[name] = value }
     end
 
-    def self.make_conditional_method(conditional_method, index, row)
+    def self.make_conditional_method(conditional_method, index, row) : Proc
       return conditional_method if conditional_method.is_a?(Proc)
       raise "Error" unless conditional_method.is_a?(Symbol)
 
       if conditional_method == :blank
-        Proc(Hash(Symbol, String | Nil), Bool).new { |_| row[index].nil? || row[index].empty? }
+        Proc(SymbolHash, Bool).new { |_| row[index].nil? || row[index].empty? }
       elsif conditional_method == :nil
-        Proc(Hash(Symbol, String | Nil), Bool).new { |_| row[index].nil? }
+        Proc(SymbolHash, Bool).new { |_| row[index].nil? }
       else
         raise "Error" # TODO Check if this is right
       end
