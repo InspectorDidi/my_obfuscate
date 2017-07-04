@@ -11,31 +11,31 @@ describe MyObfuscate::ConfigApplicator do
       end
     end
 
-#    it "should work on strings" do
-#      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "something crazy"], {:b => {:type => :string, :length => 7}}, [:a, :b, :c])
-#      expect(new_row.size).to eq(3)
-#      expect(new_row[1].size).to eq(7)
-#      expect(new_row[1]).not_to eq("something_else")
-#    end
-#
-#    describe "conditional directives" do
-#      it "should honor :unless conditionals" do
-#        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => Proc(Hash(Symbol, String),Bool).new { |row| row[:a] == "blah" }}}, [:a, :b, :c])
-#        expect(new_row[0]).not_to eq("123")
-#        expect(new_row[0]).to eq("blah")
-#
-#        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => Proc(Hash(Symbol, String), Bool).new { |row| row[:a] == "not blah" }}}, [:a, :b, :c])
-#        expect(new_row[0]).to eq("123")
-#
-#        new_row = MyObfuscate::ConfigApplicator.apply_table_config([nil, "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => :nil}, :b=> {:type => :fixed, :string => "123", :unless => :nil}}, [:a, :b, :c])
-#        expect(new_row[0]).to eq(nil)
-#        expect(new_row[1]).to eq("123")
-#
-#        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => :blank}, :b=> {:type => :fixed, :string => "123", :unless => :blank}}, [:a, :b, :c])
-#        expect(new_row[0]).to eq("")
-#        expect(new_row[1]).to eq("123")
-#      end
-#
+    it "should work on strings" do
+      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "something crazy"], {:b => {:type => :string, :length => 7}}, [:a, :b, :c])
+      expect(new_row.size).to eq(3)
+      expect(new_row[1].size).to eq(7)
+      expect(new_row[1]).not_to eq("something_else")
+    end
+
+    describe "conditional directives" do
+      it "should honor :unless conditionals" do
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => ->(row : Hash(Symbol, String | Nil)) { row[:a] == "blah" }}}, [:a, :b, :c])
+        expect(new_row[0]).not_to eq("123")
+        expect(new_row[0]).to eq("blah")
+
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => ->(row : Hash(Symbol, String | Nil)) { row[:a] == "not blah" }}}, [:a, :b, :c])
+        expect(new_row[0]).to eq("123")
+
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config([nil, "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => :nil}, :b=> {:type => :fixed, :string => "123", :unless => :nil}}, [:a, :b, :c])
+        expect(new_row[0]).to eq(nil)
+        expect(new_row[1]).to eq("123")
+
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :unless => :blank}, :b=> {:type => :fixed, :string => "123", :unless => :blank}}, [:a, :b, :c])
+        expect(new_row[0]).to eq("")
+        expect(new_row[1]).to eq("123")
+      end
+
       it "should honor :if conditionals" do
         new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :if => ->(row : Hash(Symbol, String | Nil)) { row[:a] == "blah" }}}, [:a, :b, :c])
         expect(new_row[0]).to eq("123")
@@ -76,7 +76,7 @@ describe MyObfuscate::ConfigApplicator do
         new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :if => ->(row : Hash(Symbol, String | Nil)) { row[:a] == "not blah" }, :unless => ->(row : Hash(Symbol, String | Nil)) { row[:b] == "something_else" }}}, [:a, :b, :c])
         expect(new_row[0]).to eq("blah")
       end
-#    end
+    end
 #
 #    it "should be able to generate random integers in ranges" do
 #      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:c => {:type => :integer, :between => 10..100}}, [:a, :b, :c])

@@ -5,14 +5,19 @@ class MyObfuscate
 
     def self.apply_table_config(row, table_config : SymbolHash, columns : Array(Symbol))
       return row unless table_config.is_a?(Hash)
-      row_hash = row_as_hash(row, columns) # {:a => "blah", :b => "something_else" }
+      row_hash = row_as_hash(row, columns)
 
-      table_config.each_with_index do |(column, definition), index|
+      table_config.each do |column, definition|
+        index = columns.index(column)
+        raise "ERROR" unless index
+
         definition = { :type => definition } if definition.is_a?(Symbol)
 
         number = definition[:number]?
         between = definition[:between]?
         one_of = definition[:one_of]?
+        length = definition[:length]?
+        chars = definition[:chars]?
 
         if definition.has_key?(:unless)
           proc_or_symbol = definition[:unless]
@@ -39,7 +44,7 @@ class MyObfuscate
                        md5 = Digest::MD5.hexdigest(rand.to_s)[0...5]
                        clean_quotes("#{Faker::Internet.email}.#{md5}.example.com")
                      when :string
-                       random_string(definition[:length] || 30, definition[:chars].as(String) || SENSIBLE_CHARS) if definition[:length].is_a?(Int32)
+                       random_string(length || 30, chars.as(String | Nil) || SENSIBLE_CHARS) if length.is_a?(Int32)
                      when :lorem
                        clean_bad_whitespace(clean_quotes(Faker::Lorem.sentences(number.as(Int32 | Nil) || 1).join(".  ")))
                      when :like_english
@@ -109,7 +114,6 @@ class MyObfuscate
     def self.make_conditional_method(conditional_method, index, row) : Proc
       return conditional_method if conditional_method.is_a?(Proc)
 
-
       if conditional_method == :blank
         Proc(RowAsHash, Bool).new do
           content = row[index]
@@ -126,18 +130,20 @@ class MyObfuscate
       (between.min + (between.max - between.min) * rand).round.to_i
     end
 
-    def self.random_string(length_or_range, chars : String)
+    def self.random_string(length_or_range, chars)
       range = if length_or_range.is_a?(Int32)
                 (length_or_range..length_or_range)
               elsif length_or_range.is_a?(Range)
                 length_or_range
               else
-                raise "Error"
+                raise "ERROR"
               end
       times = random_integer(range)
-      out = ""
-      times.times { out += chars[(rand * chars.size).as(Int32)] }
-      out
+      random_string = ""
+      times.times do
+        random_string += chars[(rand * chars.size).to_i]
+      end
+      random_string
     end
 
     def self.walker_method
@@ -153,7 +159,6 @@ class MyObfuscate
     end
 
     def self.random_english_sentences(num : Int32)
-
       sentences = [] of String
       num.times do
         words = [] of String
