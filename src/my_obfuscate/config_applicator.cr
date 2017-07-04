@@ -1,12 +1,18 @@
 class MyObfuscate
   class ConfigApplicator
+    alias Overloads = Proc(Hash(Symbol, String | Nil), Bool) | String | Symbol | Nil | Int32
+    alias SymbolHash = Hash(Symbol, Overloads | Hash(Symbol, Overloads))
 
-    def self.apply_table_config(row, table_config, columns : Array(Symbol))
+    def self.apply_table_config(row, table_config : SymbolHash, columns : Array(Symbol))
       return row unless table_config.is_a?(Hash)
-      row_hash = row_as_hash(row, columns) # {:a => "blah", :b => "something_else", :c => "5"}
+      row_hash = row_as_hash(row, columns) # {:a => "blah", :b => "something_else" }
 
       table_config.each_with_index do |(column, definition), index|
         definition = { :type => definition } if definition.is_a?(Symbol)
+
+        number = definition[:number]?
+        between = definition[:between]?
+        one_of = definition[:one_of]?
 
         if definition.has_key?(:unless)
           proc_or_symbol = definition[:unless]
@@ -23,101 +29,101 @@ class MyObfuscate
           next unless if_check.call(row_hash)
         end
 
-        if definition[:skip_regexes]
+        if definition[:skip_regexes]? && definition[:skip_regexes].is_a?(Array(Regex))
           skip_regexes = definition[:skip_regexes].as(Array(Regex))
           next if skip_regexes.any? { |regex| row[index] =~ regex }
         end
 
         row[index] = case definition[:type]
-          when :email
-            md5 = Digest::MD5.hexdigest(rand.to_s)[0...5]
-            clean_quotes("#{Faker::Internet.email}.#{md5}.example.com")
-          when :string
-            random_string(definition[:length].as(Int32) || 30, definition[:chars].as(String) || SENSIBLE_CHARS)
-          when :lorem
-            clean_bad_whitespace(clean_quotes(Faker::Lorem.sentences(definition[:number].as(Int32) || 1).join(".  ")))
-          when :like_english
-            clean_quotes random_english_sentences(definition[:number].as(Int32) || 1)
-          when :name
-            clean_quotes(Faker::Name.name)
-          when :first_name
-            clean_quotes(Faker::Name.first_name)
-          when :last_name
-            clean_quotes(Faker::Name.last_name)
-          when :address
-            clean_quotes("#{Faker::Address.street_address}\\n#{Faker::Address.city}, #{Faker::Address.state_abbr} #{Faker::Address.zip_code}")
-          when :street_address
-            clean_bad_whitespace(clean_quotes(Faker::Address.street_address))
-          when :secondary_address
-            clean_bad_whitespace(clean_quotes(Faker::Address.secondary_address))
-          when :city
-            clean_quotes(Faker::Address.city)
-          when :state
-            clean_quotes Faker::Address.state_abbr
-          when :zip_code
-            Faker::Address.zip_code
-          when :phone
-            clean_quotes Faker::PhoneNumber.phone_number
-          when :company
-            clean_bad_whitespace(clean_quotes(Faker::Company.name))
-          when :ipv4
-            Faker::Internet.ip_v4_address
-          when :ipv6
-            Faker::Internet.ip_v6_address
-          when :url
-            clean_bad_whitespace(Faker::Internet.url)
-          when :integer
-            random_integer(definition[:between].as(Range(Int32, Int32)) || (0..1000)).to_s
-          when :fixed
-            if definition[:one_of]
-              definition[:one_of].as(Array).sample
-            else
-              string = definition[:string]
-              if string.is_a?(Proc)
-                string.call(row_hash)
-              else
-                string
-              end
-            end
-          when :null
-            nil
-          when :keep
-            row[index]
-          else
-            STDERR.puts "Keeping a column value by providing an unknown type (#{definition[:type]}) is deprecated.  Use :keep instead."
-            row[index]
-          end.as(String)
+                     when :email
+                       md5 = Digest::MD5.hexdigest(rand.to_s)[0...5]
+                       clean_quotes("#{Faker::Internet.email}.#{md5}.example.com")
+                     when :string
+                       random_string(definition[:length] || 30, definition[:chars].as(String) || SENSIBLE_CHARS) if definition[:length].is_a?(Int32)
+                     when :lorem
+                       clean_bad_whitespace(clean_quotes(Faker::Lorem.sentences(number.as(Int32 | Nil) || 1).join(".  ")))
+                     when :like_english
+                       clean_quotes random_english_sentences(number.as(Int32 | Nil) || 1)
+                     when :name
+                       clean_quotes(Faker::Name.name)
+                     when :first_name
+                       clean_quotes(Faker::Name.first_name)
+                     when :last_name
+                       clean_quotes(Faker::Name.last_name)
+                     when :address
+                       clean_quotes("#{Faker::Address.street_address}\\n#{Faker::Address.city}, #{Faker::Address.state_abbr} #{Faker::Address.zip_code}")
+                     when :street_address
+                       clean_bad_whitespace(clean_quotes(Faker::Address.street_address))
+                     when :secondary_address
+                       clean_bad_whitespace(clean_quotes(Faker::Address.secondary_address))
+                     when :city
+                       clean_quotes(Faker::Address.city)
+                     when :state
+                       clean_quotes Faker::Address.state_abbr
+                     when :zip_code
+                       Faker::Address.zip_code
+                     when :phone
+                       clean_quotes Faker::PhoneNumber.phone_number
+                     when :company
+                       clean_bad_whitespace(clean_quotes(Faker::Company.name))
+                     when :ipv4
+                       Faker::Internet.ip_v4_address
+                     when :ipv6
+                       Faker::Internet.ip_v6_address
+                     when :url
+                       clean_bad_whitespace(Faker::Internet.url)
+                     when :integer
+                       random_integer(between).to_s if between.is_a?(Range)
+                     when :fixed
+                       if one_of.is_a?(Array)
+                         one_of.sample
+                       else
+                         string = definition[:string]
+                         if string.is_a?(Proc)
+                           # string.call(row_hash)
+                         else
+                           string
+                         end
+                       end
+                     when :null
+                       nil
+                     when :keep
+                       row[index]
+                     else
+                       STDERR.puts "Keeping a column value by providing an unknown type (#{definition[:type]}) is deprecated.  Use :keep instead."
+                       row[index]
+                     end.as(String)
       end
       row
     end
 
-    alias SymbolHash = Hash(Symbol,
-                            Proc(Hash(Symbol, String), Bool) |
-                            String |
-                            Symbol |
-                            Nil |
-                            SymbolHash
-                           )
+    alias RowAsHash = Hash(Symbol, String | Nil)
+    alias Row = Array(String)
 
-    def self.row_as_hash(row : Array(String | Nil), columns : Array(Symbol)) : Hash(Symbol, String | Nil)
-      columns.zip(row).each_with_object({} of Symbol => (String | Nil) ) { |(name, value),m| m[name] = value }
+    def self.row_as_hash(row : Array, columns : Array) : RowAsHash
+      columns.zip(row).each_with_object({} of Symbol => (String | Nil)) do |(name, value),m|
+        m[name] = value
+      end
     end
 
     def self.make_conditional_method(conditional_method, index, row) : Proc
       return conditional_method if conditional_method.is_a?(Proc)
-      raise "Error" unless conditional_method.is_a?(Symbol)
+
 
       if conditional_method == :blank
-        Proc(SymbolHash, Bool).new { |_| row[index].nil? || row[index].empty? }
+        Proc(RowAsHash, Bool).new do
+          content = row[index]
+          content.nil? || content.empty?
+        end
       elsif conditional_method == :nil
-        Proc(SymbolHash, Bool).new { |_| row[index].nil? }
+        Proc(RowAsHash, Bool).new { row[index].nil? }
       else
         raise "Error" # TODO Check if this is right
       end
     end
 
     def self.random_integer(between : Range(Int32, Int32)) : Int32
-      (between.min + (between.max - between.min) * rand).round.as(Int32)
+      (between.min + (between.max - between.min) * rand).round.to_i
     end
 
     def self.random_string(length_or_range, chars : String)
