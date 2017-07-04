@@ -1,9 +1,17 @@
 class MyObfuscate
   class ConfigApplicator
-    alias Overloads = Proc(Hash(Symbol, String | Nil), Bool) | String | Symbol | Nil | Int32
+    alias RowAsHash = Hash(Symbol, String | Nil)
+    alias Row = Array(String)
+    alias Columns = Array(Symbol)
+    alias IntRange = Range(Int32, Int32)
+
+    alias StringProcArg = Proc(RowAsHash, String | Nil)
+    alias StringProc = Proc(String) | StringProcArg
+    alias BoolProc = Proc(RowAsHash, Bool)
+    alias Overloads = BoolProc | StringProc | String | Symbol | Nil | Int32 | IntRange | Row
     alias SymbolHash = Hash(Symbol, Overloads | Hash(Symbol, Overloads))
 
-    def self.apply_table_config(row, table_config : SymbolHash, columns : Array(Symbol))
+    def self.apply_table_config(row, table_config : SymbolHash, columns : Columns)
       return row unless table_config.is_a?(Hash)
       row_hash = row_as_hash(row, columns)
 
@@ -22,6 +30,7 @@ class MyObfuscate
         if definition.has_key?(:unless)
           proc_or_symbol = definition[:unless]
 
+          raise "ERROR" unless proc_or_symbol.is_a?(BoolProc | Symbol)
           unless_check = make_conditional_method(proc_or_symbol, index, row)
 
           next if unless_check.call(row_hash)
@@ -29,7 +38,11 @@ class MyObfuscate
 
 
         if definition.has_key?(:if)
-          if_check = make_conditional_method(definition[:if], index, row)
+          if_definition = definition[:if]
+
+          raise "ERROR" unless if_definition.is_a?(BoolProc | Symbol)
+
+          if_check = make_conditional_method(if_definition, index, row)
 
           next unless if_check.call(row_hash)
         end
@@ -85,7 +98,11 @@ class MyObfuscate
                        else
                          string = definition[:string]
                          if string.is_a?(Proc)
-                           # string.call(row_hash)
+                           if string.is_a?(Proc(Hash(Symbol, String | Nil), String | Nil))
+                             string.call(row_hash)
+                           elsif string.is_a?(Proc(String))
+                             string.call
+                           end
                          else
                            string
                          end
@@ -101,9 +118,6 @@ class MyObfuscate
       end
       row
     end
-
-    alias RowAsHash = Hash(Symbol, String | Nil)
-    alias Row = Array(String)
 
     def self.row_as_hash(row : Array, columns : Array) : RowAsHash
       columns.zip(row).each_with_object({} of Symbol => (String | Nil)) do |(name, value),m|

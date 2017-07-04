@@ -77,45 +77,45 @@ describe MyObfuscate::ConfigApplicator do
         expect(new_row[0]).to eq("blah")
       end
     end
-#
-#    it "should be able to generate random integers in ranges" do
-#      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:c => {:type => :integer, :between => 10..100}}, [:a, :b, :c])
-#      expect(new_row.size).to eq(3)
-#      expect(new_row[2].to_i.to_s).to eq(new_row[2]) # It should be an integer.
-#      expect(new_row[2]).not_to eq("5")
-#    end
-#
-#    it "should be able to substitute fixed strings" do
-#      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => {:type => :fixed, :string => "hello"}}, [:a, :b, :c])
-#      expect(new_row.size).to eq(3)
-#      expect(new_row[1]).to eq("hello")
-#    end
-#
-#    it "should be able to substitute a proc that returns a string" do
-#      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => {:type => :fixed, :string => proc { "Hello World" }}}, [:a, :b, :c])
-#      expect(new_row.size).to eq(3)
-#      expect(new_row[1]).to eq("Hello World")
-#    end
-#
-#    it "should provide the row to the proc" do
-#      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => {:type => :fixed, :string => proc { |a| a[:b] }}}, [:a, :b, :c])
-#      expect(new_row.size).to eq(3)
-#      expect(new_row[1]).to eq("something_else")
-#    end
-#
-#    it "should be able to substitute fixed strings from a random set" do
-#      looking_for = ["hello", "world"]
-#      original_looking_for = looking_for.dup
-#      guard = 0
-#      while !looking_for.empty? && guard < 1000
-#        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a => {:type => :fixed, :one_of => ["hello", "world"]}}, [:a, :b, :c])
-#        expect(new_row.size).to eq(3)
-#        expect(original_looking_for).to contain(new_row[0])
-#        looking_for.delete new_row[0]
-#        guard += 1
-#      end
-#      expect(looking_for).to be_empty
-#    end
+
+    it "should be able to generate random integers in ranges" do
+      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:c => {:type => :integer, :between => 10..100}}, [:a, :b, :c])
+      expect(new_row.size).to eq(3)
+      expect(new_row[2].to_i.to_s).to eq(new_row[2]) # It should be an integer.
+      expect(new_row[2]).not_to eq("5")
+    end
+
+    it "should be able to substitute fixed strings" do
+      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => {:type => :fixed, :string => "hello"}}, [:a, :b, :c])
+      expect(new_row.size).to eq(3)
+      expect(new_row[1]).to eq("hello")
+    end
+
+    it "should be able to substitute a proc that returns a string" do
+      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => {:type => :fixed, :string => ->{ "Hello World" }}}, [:a, :b, :c])
+      expect(new_row.size).to eq(3)
+      expect(new_row[1]).to eq("Hello World")
+    end
+
+    it "should provide the row to the proc" do
+      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => {:type => :fixed, :string => ->(row : Hash(Symbol, String | Nil)) { row[:b] }}}, [:a, :b, :c])
+      expect(new_row.size).to eq(3)
+      expect(new_row[1]).to eq("something_else")
+    end
+
+    it "should be able to substitute fixed strings from a random set" do
+      looking_for = ["hello", "world"]
+      original_looking_for = looking_for.dup
+      guard = 0
+      while !looking_for.empty? && guard < 1000
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a => {:type => :fixed, :one_of => ["hello", "world"]}}, [:a, :b, :c])
+        expect(new_row.size).to eq(3)
+        expect(original_looking_for).to contain(new_row[0])
+        looking_for.delete new_row[0]
+        guard += 1
+      end
+      expect(looking_for.size).to eq(0)
+    end
 #
 #    it "should treat a symbol in the column definition as an implicit { :type => symbol }" do
 #      new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:b => :null, :a => :keep}, [:a, :b, :c])
