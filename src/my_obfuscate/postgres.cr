@@ -10,11 +10,12 @@ class MyObfuscate
     #
     # We wrap it in an array to keep it consistent with MySql bulk
     # obfuscation (multiple rows per insert statement)
-    def rows_to_be_inserted(line)
-      row = line.split(/\t/, -1)
-      row.last && row.last.strip!
+    def rows_to_be_inserted(line) : Array(Array(String?))
+      row = line.split(/\t/)
 
-      row.collect! do |value|
+      row << row.pop.strip
+
+      row = row.map do |value|
         if value == "\\N"
           nil
         else
@@ -28,8 +29,8 @@ class MyObfuscate
     def parse_copy_statement(line)
       if regex_match = /^\s*COPY (.*?) \((.*?)\) FROM\s*/i.match(line)
         {
-            :table_name => regex_match[1].to_sym,
-            :column_names => regex_match[2].split(/\s*,\s*/).map(&:to_sym)
+            "table_name" => regex_match[1],
+            "column_names" => regex_match[2].split(/\s*,\s*/)
         }
       end
     end

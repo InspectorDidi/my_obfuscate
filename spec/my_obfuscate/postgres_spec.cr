@@ -1,9 +1,10 @@
 require "../spec_helper"
 
+def helper
+  MyObfuscate::Postgres.new
+end
+
 describe MyObfuscate::Postgres do
-
-  let(:helper) { MyObfuscate::Postgres.new }
-
   describe "#rows_to_be_inserted" do
     it "splits tab seperated values" do
       line = "1	2	3	4"
@@ -54,9 +55,9 @@ describe MyObfuscate::Postgres do
   describe "#parse_copy_statement" do
     it "parses table name and column names" do
       line = "COPY some_table (id, email, name, something) FROM stdin;"
-      hash = helper.parse_copy_statement(line)
-      expect(hash[:table_name]).to eq(:some_table)
-      expect(hash[:column_names]).to eq([:id, :email, :name, :something])
+      hash = helper.parse_copy_statement(line) || raise "Error"
+      expect(hash["table_name"]).to eq("some_table")
+      expect(hash["column_names"]).to eq(["id", "email", "name", "something"])
     end
   end
 

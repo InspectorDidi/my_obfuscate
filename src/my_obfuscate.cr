@@ -5,8 +5,7 @@ require "walker_method"
 # Class for obfuscating MySQL dumps. This can parse mysqldump outputs when using the -c option, which includes
 # column names in the insert statements.
 class MyObfuscate
-  property :config, :globally_kept_columns, :fail_on_unspecified_columns, :database_type, :scaffolded_tables
-
+  property config, globally_kept_columns, fail_on_unspecified_columns, database_type = :mysql, scaffolded_tables
   NUMBER_CHARS = "1234567890"
   USERNAME_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_" + NUMBER_CHARS
   SENSIBLE_CHARS = USERNAME_CHARS + "+-=[{]}/?|!@#$%^&*()`~"
@@ -23,17 +22,13 @@ class MyObfuscate
   end
 
   def database_helper
-    if @database_helper.nil?
-      if @database_type == :sql_server
-        @database_helper = SqlServer.new
-      elsif @database_type == :postgres
-        @database_helper = Postgres.new
-      else
-        @database_helper = Mysql.new
-      end
-    end
-
-    @database_helper
+    @database_helper ||= if @database_type == :sql_server
+                           SqlServer.new
+                         elsif @database_type == :postgres
+                           Postgres.new
+                         else
+                           Mysql.new
+                         end
   end
 
   # Read an input stream and dump out an obfuscated output stream.  These streams could be StringIO objects, Files,

@@ -40,7 +40,7 @@ describe MyObfuscate::ConfigApplicator do
         new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :if => ->(row : Hash(Symbol, String | Nil)) { row[:a] == "blah" }}}, [:a, :b, :c])
         expect(new_row[0]).to eq("123")
 
-        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :if=> ->(row : Hash(Symbol, String | Nil)) { row[:a] == "not blah" }}}, [:a, :b, :c])
+        new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], {:a=> {:type => :fixed, :string => "123", :if => ->(row : Hash(Symbol, String | Nil)) { row[:a] == "not blah" }}}, [:a, :b, :c])
         expect(new_row[0]).not_to eq("123")
         expect(new_row[0]).to eq("blah")
 

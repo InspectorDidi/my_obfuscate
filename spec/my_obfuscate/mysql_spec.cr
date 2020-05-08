@@ -1,5 +1,9 @@
 require "../spec_helper"
 
+def subject
+  MyObfuscate::Mysql.new
+end
+
 describe MyObfuscate::Mysql do
 
   describe "#rows_to_be_inserted" do
@@ -11,13 +15,13 @@ describe MyObfuscate::Mysql do
 
     it "should work ok with escaped characters" do
       string = "INSERT INTO `some_table` (thing1,thing2) VALUES ('bob,@bob.c  , om', 'bo\\', b', 'some\"thin\\gel\\\\\\'se1', 25, '2', 10,    'hi', 5)  ; "
-      fields = [["bob,@bob.c  , om", "bo\\\", b", "some\"thin\\gel\\\\\\\"se1", "25", "2", "10", "hi", "5"]]
+      fields = [["bob,@bob.c  , om", "bo\\', b", "some\"thin\\gel\\\\\\'se1", "25", "2", "10", "hi", "5"]]
       expect(subject.rows_to_be_inserted(string)).to eq(fields)
     end
 
     it "should work with multiple subinserts" do
       string = "INSERT INTO `some_table` (thing1,thing2) VALUES (1,2,3, '((m))(oo()s,e'), ('bob,@bob.c  , om', 'bo\\', b', 'some\"thin\\gel\\\\\\'se1', 25, '2', 10,    'hi', 5) ;"
-      fields = [["1", "2", "3", "((m))(oo()s,e"], ["bob,@bob.c  , om", "bo\\\", b", "some\"thin\\gel\\\\\\\"se1", "25", "2", "10", "hi", "5"]]
+      fields = [["1", "2", "3", "((m))(oo()s,e"], ["bob,@bob.c  , om", "bo\\', b", "some\"thin\\gel\\\\\\'se1", "25", "2", "10", "hi", "5"]]
       expect(subject.rows_to_be_inserted(string)).to eq(fields)
     end
 
@@ -73,14 +77,14 @@ describe MyObfuscate::Mysql do
 
     it "should return a hash of table name, column names for MySQL insert statements" do
       hash = subject.parse_insert_statement("INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);")
-      expect(hash).to eq({:ignore => false, :table_name => :some_table, :column_names => [:email, :name, :something, :age]})
+      expect(hash).to eq({"ignore" => false, "table_name" => "some_table", "column_names" => ["email", "name", "something", "age"]})
     end
   end
 
   describe "#parse_insert_ignore_statement" do
     it "should return a hash of IGNORE, table name, column names for MySQL insert statements" do
       hash = subject.parse_insert_statement("INSERT IGNORE INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);")
-      expect(hash).to eq({:ignore => true, :table_name => :some_table, :column_names => [:email, :name, :something, :age]})
+      expect(hash).to eq({"ignore" => true, "table_name" => "some_table", "column_names" => ["email", "name", "something", "age"]})
     end
   end
 
