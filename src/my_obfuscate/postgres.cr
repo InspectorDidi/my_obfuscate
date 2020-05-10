@@ -36,7 +36,7 @@ class MyObfuscate
     end
 
     def make_insert_statement(table_name, column_names, values, ignore = nil)
-      values.join("\t")
+      values.flatten.join('\t')
     end
 
     def make_valid_value_string(value)

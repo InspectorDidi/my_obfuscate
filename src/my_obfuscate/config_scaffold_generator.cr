@@ -2,7 +2,7 @@ class MyObfuscate
   module ConfigScaffoldGenerator
 
     def generate_config(obfuscator, config, input_io, output_io)
-      input_io.each_line do |line|
+      input_io.each_line(chomp: false) do |line|
         if obfuscator.database_type == :postgres
           parse_copy_statement = ->(line : String) do
             if regex_match = /^\s*COPY (.*?) \((.*?)\) FROM\s*/i.match(line)
@@ -19,10 +19,10 @@ class MyObfuscate
         next unless table_data
 
         table_name = table_data["table_name"].as(String)
-        next if obfuscator.scaffolded_tables[table_name]    # only process each table_name once
+        next if obfuscator.scaffolded_tables[table_name]?    # only process each table_name once
 
         columns = table_data["column_names"].as(Array(String))
-        table_config = config[table_name]
+        table_config = config[table_name]?
         next if table_config == :truncate || table_config == :keep
 
         missing_columns = obfuscator.missing_column_list(table_name, columns)
@@ -33,7 +33,7 @@ class MyObfuscate
           output_io.puts("\n# All columns in the config for #{table_name.upcase} are present and accounted for.")
         else
           # there are columns missing (or perhaps the whole table is missing); show a scaffold
-          emit_scaffold(table_name, table_config.as(ConfigTableHash), extra_columns, missing_columns, output_io)
+          emit_scaffold(table_name, table_config.as(ConfigTableHash?), extra_columns, missing_columns, output_io)
         end
 
         # Now that this table_name has been processed, remember it so we don't scaffold it again
@@ -59,11 +59,11 @@ class MyObfuscate
             output_io.puts formatted_line(column, definition)
           end
         end
-      end
 
-      extra_columns.each do |column|
-        output_string = formatted_line(column, existing_config[column], "# unreferenced config")
-        output_io.puts "#  #{output_string}"
+        extra_columns.each do |column|
+          output_string = formatted_line(column, existing_config[column], "# unreferenced config")
+          output_io.puts "#  #{output_string}"
+        end
       end
 
       # scaffold block: contains any config that's not already present
@@ -84,9 +84,10 @@ class MyObfuscate
                      end
 
       if column.size < 40
-        "    :#{column.ljust(40)}  => #{colon_string},   #{comment}"
+        column_name = %{"#{column}"}
+        %{    "#{column_name.ljust(40)}  => #{colon_string},   #{comment}}
       else
-        "    :#{column} => #{definition},  #{comment}"
+        %{    "#{column}" => #{definition},  #{comment}}
       end
 
     end

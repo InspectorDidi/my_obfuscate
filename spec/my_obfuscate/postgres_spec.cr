@@ -59,7 +59,7 @@ Spectator.describe MyObfuscate::Postgres do
 
   describe "#make_insert_statement" do
     it "creates a string with tab delminted" do
-      expect(subject.make_insert_statement(:some_table, [:id, :name], ["1", "2"])).to eq("1	2")
+      expect(subject.make_insert_statement("some_table", ["id", "name"], ["1", "2"])).to eq("1	2")
     end
   end
 end

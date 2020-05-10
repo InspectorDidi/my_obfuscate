@@ -1,7 +1,7 @@
 class MyObfuscate
   module InsertStatementParser
     def parse(obfuscator, config, input_io, output_io)
-      input_io.each_line do |line|
+      input_io.each_line(chomp: false) do |line|
         if table_data = parse_insert_statement(line)
           table_name = table_data["table_name"].as(String)
           columns = table_data["column_names"].as(Array(String))

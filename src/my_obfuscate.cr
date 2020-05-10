@@ -77,7 +77,7 @@ class MyObfuscate
   end
 
   def extra_column_list(table_name : String, columns : Array(String))
-    config_table = config[table_name].as(ConfigTableHash)
+    config_table = (config[table_name]? || ConfigTableHash.new).as(ConfigTableHash)
     config_columns = config_table.keys
     config_columns ||= [] of String
     config_columns - columns
@@ -93,8 +93,8 @@ class MyObfuscate
     end
   end
 
-  def missing_column_list(table_name : String, columns : Array(String))
-    config_table = config[table_name].as(ConfigTableHash)
+  def missing_column_list(table_name : String, columns : Array(String)) : Array
+    config_table = (config[table_name]? || ConfigTableHash.new).as(ConfigTableHash)
     config_columns = config_table.keys
     columns - (config_columns + globally_kept_columns).uniq
   end

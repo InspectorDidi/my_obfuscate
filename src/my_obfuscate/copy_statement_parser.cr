@@ -16,7 +16,7 @@ class MyObfuscate
       current_columns = ColumnList.new
       inside_copy_statement = false
 
-      input_io.each_line do |line|
+      input_io.each_line(chomp: false) do |line|
         if parse_insert_statement(line)
           raise RuntimeError.new("Cannot obfuscate Postgres dumps containing INSERT statements. Please use COPY statments.")
         elsif table_data = parse_copy_statement(line)
@@ -35,7 +35,7 @@ class MyObfuscate
 
           output_io.write(line)
         elsif inside_copy_statement
-          output_io.puts obfuscator.obfuscate_bulk_insert_line(line, current_table_name, current_columns)
+          output_io.puts(obfuscator.obfuscate_bulk_insert_line(line, current_table_name, current_columns))
         else
           output_io.write(line)
         end
