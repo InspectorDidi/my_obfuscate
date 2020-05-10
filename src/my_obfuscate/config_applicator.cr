@@ -1,19 +1,21 @@
 class MyObfuscate
   class ConfigApplicator
-    alias RowAsHash = Hash(Symbol, String | Nil)
-    alias Row = Array(String)
-    alias Columns = Array(Symbol)
+    alias RowAsHash = Hash(String, RowContent)
+    alias RowContent = String | Int32 | Nil
+    alias Row = Array(RowContent)
+    alias Columns = Array(String)
     alias IntRange = Range(Int32, Int32)
 
-    alias StringProcArg = Proc(RowAsHash, String | Nil)
-    alias StringProc = Proc(String) | StringProcArg
     alias BoolProc = Proc(RowAsHash, Bool)
-    alias Overloads = BoolProc | StringProc | String | Symbol | Nil | Int32 | IntRange | Row
-    alias SymbolHash = Hash(Symbol, Overloads | Hash(Symbol, Overloads))
+    alias StringProc = Proc(String)
 
-    def self.apply_table_config(row, table_config : SymbolHash, columns : Columns)
+    def self.apply_table_config(row : Array(String?), table_config : MyObfuscate::ConfigTableHash, columns : Columns)
       return row unless table_config.is_a?(Hash)
+
       row_hash = row_as_hash(row, columns)
+
+      my_row = Row.new
+      my_row += row
 
       table_config.each do |column, definition|
         index = columns.index(column)
@@ -36,7 +38,6 @@ class MyObfuscate
           next if unless_check.call(row_hash)
         end
 
-
         if definition.has_key?(:if)
           if_definition = definition[:if]
 
@@ -52,7 +53,7 @@ class MyObfuscate
           next if skip_regexes.any? { |regex| row[index] =~ regex }
         end
 
-        row[index] = case definition[:type]
+        my_row[index] = case definition[:type]
                      when :email
                        md5 = Digest::MD5.hexdigest(rand.to_s)[0...5]
                        clean_quotes("#{Faker::Internet.email}.#{md5}.example.com")
@@ -61,7 +62,7 @@ class MyObfuscate
                      when :lorem
                        clean_bad_whitespace(clean_quotes(Faker::Lorem.sentences(number.as(Int32 | Nil) || 1).join(".  ")))
                      when :like_english
-                       clean_quotes random_english_sentences(number.as(Int32 | Nil) || 1)
+                       clean_quotes random_english_sentences(number.as(Int32?) || 1)
                      when :name
                        clean_quotes(Faker::Name.name)
                      when :first_name
@@ -91,36 +92,36 @@ class MyObfuscate
                      when :url
                        clean_bad_whitespace(Faker::Internet.url)
                      when :integer
-                       random_integer(between).to_s if between.is_a?(Range)
+                       random_integer(between.as(IntRange) || (0..1000)).to_s
                      when :fixed
                        if one_of.is_a?(Array)
-                         one_of.sample
+                         one_of.sample.as(String | Int32)
                        else
                          string = definition[:string]
                          if string.is_a?(Proc)
-                           if string.is_a?(Proc(Hash(Symbol, String | Nil), String | Nil))
+                           if string.is_a?(Proc(Hash(String, String | Nil | Int32), String | Nil | Int32))
                              string.call(row_hash)
-                           elsif string.is_a?(Proc(String))
+                           elsif string.is_a?(StringProc)
                              string.call
                            end
                          else
-                           string
+                           string.as(String)
                          end
                        end
                      when :null
                        nil
                      when :keep
-                       row[index]
+                       row[index]?
                      else
                        STDERR.puts "Keeping a column value by providing an unknown type (#{definition[:type]}) is deprecated.  Use :keep instead."
-                       row[index]
-                     end.as(String)
+                       row[index]?
+                     end
       end
-      row
+      my_row
     end
 
     def self.row_as_hash(row : Array, columns : Array) : RowAsHash
-      columns.zip(row).each_with_object({} of Symbol => (String | Nil)) do |(name, value),m|
+      columns.zip(row).each_with_object(RowAsHash.new) do |(name, value),m|
         m[name] = value
       end
     end
@@ -162,7 +163,8 @@ class MyObfuscate
 
     def self.walker_method
       @@walker_method ||= begin
-                            words, counts = [] of String, [] of Int32
+                            words = Array(String).new
+                            counts = Array(Int32).new
                             File.read(File.expand_path(File.join(File.dirname(__FILE__), "data", "en_50K.txt"))).each_line do |line|
                               word, count = line.split(/\s+/)
                               words << word
@@ -173,9 +175,9 @@ class MyObfuscate
     end
 
     def self.random_english_sentences(num : Int32)
-      sentences = [] of String
+      sentences = Array(String).new
       num.times do
-        words = [] of String
+        words = Array(String).new
         (3 + rand * 5).to_i.times { words << walker_method.random }
         sentence = words.join(" ") + "."
         sentences << sentence.capitalize

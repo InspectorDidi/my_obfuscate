@@ -40,7 +40,7 @@ class MyObfuscate
       elsif value =~ /^0x[0-9a-fA-F]+$/
         value
       else
-        "'" + value + "'"
+        "'" + value.to_s + "'"
       end
     end
 

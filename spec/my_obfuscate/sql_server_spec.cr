@@ -1,10 +1,6 @@
 require "../spec_helper"
 
-def subject
-  MyObfuscate::SqlServer.new
-end
-
-describe MyObfuscate::SqlServer do
+Spectator.describe MyObfuscate::SqlServer do
   describe "#parse_insert_statement" do
     it "should return a hash of table_name, column_names for SQL Server input statements" do
       hash = subject.parse_insert_statement("INSERT [dbo].[TASKS] ([TaskID], [TaskName]) VALUES (61, N\"Report Thing\")")

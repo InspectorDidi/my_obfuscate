@@ -1,11 +1,7 @@
 require "../spec_helper"
 
-def subject
-  MyObfuscate::Mysql.new
-end
-
-describe MyObfuscate::Mysql do
-
+Spectator.describe MyObfuscate::Mysql do
+  # MyObfuscate::Mysql.new
   describe "#rows_to_be_inserted" do
     it "should split a mysql string into fields" do
       string = "INSERT INTO `some_table` (thing1,thing2) VALUES ('bob@bob.com','bob', 'somethingelse1', 25, '2', 10,    'hi')  ;  "

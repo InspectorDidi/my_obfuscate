@@ -12,31 +12,32 @@ class MyObfuscate
     # column names) across multiple lines.
     #
     def parse(obfuscator, config, input_io, output_io)
-      current_table_name, current_columns = ""
+      current_table_name = String.new
+      current_columns = ColumnList.new
       inside_copy_statement = false
 
-      input_io.each do |line|
+      input_io.each_line do |line|
         if parse_insert_statement(line)
           raise RuntimeError.new("Cannot obfuscate Postgres dumps containing INSERT statements. Please use COPY statments.")
         elsif table_data = parse_copy_statement(line)
           inside_copy_statement = true
 
-          current_table_name = table_data[:table_name]
-          current_columns = table_data[:column_names]
+          current_table_name = table_data["table_name"].as(String)
+          current_columns = table_data["column_names"].as(ColumnList)
 
           if !config[current_table_name]
             STDERR.puts "Deprecated: #{current_table_name} was not specified in the config.  A future release will cause this to be an error.  Please specify the table definition or set it to :keep."
           end
 
           output_io.write line
-        elsif line.match /\S*\.\n/
+        elsif line.match /^\\\.$/
           inside_copy_statement = false
 
-          output_io.write line
+          output_io.write(line)
         elsif inside_copy_statement
           output_io.puts obfuscator.obfuscate_bulk_insert_line(line, current_table_name, current_columns)
         else
-          output_io.write line
+          output_io.write(line)
         end
       end
     end

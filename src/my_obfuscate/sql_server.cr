@@ -20,7 +20,7 @@ class MyObfuscate
     def make_valid_value_string(value)
       if value.nil?
         "NULL"
-      elsif value.match(/^[A-Z]+\(.*?\)$/)
+      elsif value.is_a?(String) && value.match(/^[A-Z]+\(.*?\)$/)
         value
       else
         "N'#{value}'"

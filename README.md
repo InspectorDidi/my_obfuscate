@@ -98,9 +98,9 @@ Then feed in your database dump:
   pg_dump database | ruby scaffolder.rb > obfuscator_scaffold.rb_snippet
 
 The output will be a series of configuration statements of the form:
-    :table_name => {
-      :column1_name     => :keep   # scaffold
-      :column2_name     => :keep   # scaffold
+    "table_name" => {
+      "column1_name"     => :keep   # scaffold
+      "column2_name"     => :keep   # scaffold
   	... etc.
 
 Scaffolding also works if you have a partial configuration.  If your configuration is missing some tables or some columns, a call to 'scaffold' will pass through the configuration that exists and augment it with scaffolding for the missing tables or columns.

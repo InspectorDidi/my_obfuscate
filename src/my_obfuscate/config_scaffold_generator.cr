@@ -2,30 +2,38 @@ class MyObfuscate
   module ConfigScaffoldGenerator
 
     def generate_config(obfuscator, config, input_io, output_io)
-      input_io.each do |line|
+      input_io.each_line do |line|
         if obfuscator.database_type == :postgres
-          table_data = parse_copy_statement(line)
+          parse_copy_statement = ->(line : String) do
+            if regex_match = /^\s*COPY (.*?) \((.*?)\) FROM\s*/i.match(line)
+              {
+                "table_name" => regex_match[1],
+                "column_names" => regex_match[2].split(/\s*,\s*/)
+              }
+            end
+          end
+          table_data = parse_copy_statement.call(line)
         else
           table_data = parse_insert_statement(line)
         end
         next unless table_data
 
-        table_name = table_data[:table_name]
+        table_name = table_data["table_name"].as(String)
         next if obfuscator.scaffolded_tables[table_name]    # only process each table_name once
 
-        columns = table_data[:column_names]
+        columns = table_data["column_names"].as(Array(String))
         table_config = config[table_name]
         next if table_config == :truncate || table_config == :keep
 
         missing_columns = obfuscator.missing_column_list(table_name, columns)
         extra_columns = obfuscator.extra_column_list(table_name, columns)
 
-        if missing_columns.count == 0 && extra_columns.count == 0
+        if missing_columns.size == 0 && extra_columns.size == 0
           # all columns are accounted for
-          output_io.puts "\n# All columns in the config for #{table_name.upcase} are present and accounted for."
+          output_io.puts("\n# All columns in the config for #{table_name.upcase} are present and accounted for.")
         else
           # there are columns missing (or perhaps the whole table is missing); show a scaffold
-          emit_scaffold(table_name, table_config, extra_columns, missing_columns, output_io)
+          emit_scaffold(table_name, table_config.as(ConfigTableHash), extra_columns, missing_columns, output_io)
         end
 
         # Now that this table_name has been processed, remember it so we don't scaffold it again
@@ -45,9 +53,9 @@ class MyObfuscate
 
       # header block: contains table name and any existing config
       if existing_config
-        output_io.puts config_table_open(table_name)
+        output_io.puts(config_table_open(table_name))
         existing_config.each do |column, definition|
-          unless extra_columns.include?(column)
+          unless extra_columns.includes?(column)
             output_io.puts formatted_line(column, definition)
           end
         end
@@ -75,7 +83,7 @@ class MyObfuscate
                        ":#{definition}"
                      end
 
-      if column.length < 40
+      if column.size < 40
         "    :#{column.ljust(40)}  => #{colon_string},   #{comment}"
       else
         "    :#{column} => #{definition},  #{comment}"
