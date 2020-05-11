@@ -11,13 +11,11 @@ dependencies:
 development_dependencies:
   spectator:
     gitlab: arctic-fox/spectator
-    # github: icy-arctic-fox/spectator
-
-# development_dependencies:
-#   expect:
-#     github: dukex/expect.cr
 
 authors:
   - Jose Luis Salas <josacar@gmail.com>
 
 license: MIT
+
+description: |
+  Mysql, PostgreSQL and SQL dump obfuscator aka anonimizer
