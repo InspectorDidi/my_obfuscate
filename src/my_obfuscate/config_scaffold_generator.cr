@@ -77,17 +77,18 @@ class MyObfuscate
     end
 
     def formatted_line(column, definition, comment = nil)
-      colon_string = if (definition.to_s[0]=="{" || definition.to_s[0]==":")
+      colon_string = if (definition.to_s[0]== '{' || definition.to_s[0]== ':')
                        definition.to_s
                      else
                        ":#{definition}"
                      end
 
+      column_name = %{"#{column}"}
+
       if column.size < 40
-        column_name = %{"#{column}"}
-        %{    "#{column_name.ljust(40)}  => #{colon_string},   #{comment}}
+        %{    #{column_name.ljust(40)}  => #{colon_string},   #{comment}}
       else
-        %{    "#{column}" => #{definition},  #{comment}}
+        %{    #{column_name} => #{definition},  #{comment}}
       end
 
     end
