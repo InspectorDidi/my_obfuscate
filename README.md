@@ -2,49 +2,55 @@
 
 [![Build Status](https://travis-ci.org/josacar/my_obfuscate.svg?branch=master)](https://travis-ci.org/josacar/my_obfuscate)
 
-You want to develop against real production data, but you don't want to violate your users' privacy.  Enter MyObfuscate: standalone Ruby code for the selective rewriting of SQL dumps in order to protect user privacy.  It supports MySQL, Postgres, and SQL Server.
+You want to develop against real production data, but you don't want to violate your users' privacy.  Enter MyObfuscate: standalone Crystal code for the selective rewriting of SQL dumps in order to protect user privacy.  It supports MySQL, Postgres, and SQL Server.
 
 # Install
 
-    (sudo) gem install my_obfuscate
+Add this in your `shard.yml`
+
+```
+dependencies:
+  my_obfuscate:
+    github: josacar/my_obfuscate
+```
+
+And then run `shards install`
 
 # Example Usage
 
-Make an obfuscator.rb script:
+Make an obfuscator.cr script:
 
-```ruby
-#!/usr/bin/env ruby
-require "rubygems"
+```crystal
 require "my_obfuscate"
 
-obfuscator = MyObfuscate.new({
-  :people => {
-    :email                     => { :type => :email, :skip_regexes => [/^[\w\.\_]+@my_company\.com$/i] },
-    :ethnicity                 => :keep,
-    :crypted_password          => { :type => :fixed, :string => "SOME_FIXED_PASSWORD_FOR_EASE_OF_DEBUGGING" },
-    :salt                      => { :type => :fixed, :string => "SOME_THING" },
-    :remember_token            => :null,
-    :remember_token_expires_at => :null,
-    :age                       => { :type => :null, :unless => lambda { |person| person[:email] == "hello@example.com" } },
-    :photo_file_name           => :null,
-    :photo_content_type        => :null,
-    :photo_file_size           => :null,
-    :photo_updated_at          => :null,
-    :postal_code               => { :type => :fixed, :string => "94109", :unless => lambda {|person| person[:postal_code] == "12345"} },
-    :name                      => :name,
-    :full_address              => :address,
-    :bio                       => { :type => :lorem, :number => 4 },
-    :relationship_status       => { :type => :fixed, :one_of => ["Single", "Divorced", "Married", "Engaged", "In a Relationship"] },
-    :has_children              => { :type => :integer, :between => 0..1 },
+obfuscator = MyObfuscate.new(MyObfuscate::ConfigHash{
+  "people" => MyObfuscate::ConfigTableHash{
+    "email"                     => ConfigTableHash{ :type => :email, :skip_regexes => [/^[\w\.\_]+@my_company\.com$/i] },
+    "ethnicity"                 => :keep,
+    "crypted_password"          => ConfigTableHash{ :type => :fixed, :string => "SOME_FIXED_PASSWORD_FOR_EASE_OF_DEBUGGING" },
+    "salt"                      => ConfigTableHash{ :type => :fixed, :string => "SOME_THING" },
+    "remember_token"            => :null,
+    "remember_token_expires_at" => :null,
+    "age"                       => ConfigTableHash{ :type => :null, :unless => ->(person : MyObfuscate::ConfigAplicator::RowAsHash) { person["email"] == "hello@example.com" } },
+    "photo_file_name"           => :null,
+    "photo_content_type"        => :null,
+    "photo_file_size"           => :null,
+    "photo_updated_at"          => :null,
+    "postal_code"               => ConfigTableHash{ :type => :fixed, :string => "94109", :unless => ->(person : MyObfuscate::ConfigAplicator::RowAsHash) { person[:postal_code] == "12345"} },
+    "name"                      => :name,
+    "full_address"              => :address,
+    "bio"                       => ConfigTableHash{ :type => :lorem, :number => 4 },
+    "relationship_status"       => ConfigTableHash{ :type => :fixed, :one_of => ["Single", "Divorced", "Married", "Engaged", "In a Relationship"] },
+    "has_children"              => ConfigTableHash{ :type => :integer, :between => 0..1 },
   },
 
-  :invites                     => :truncate,
-  :invite_requests             => :truncate,
-  :tags                        => :keep,
+  "invites"                     => :truncate,
+  "invite_requests"             => :truncate,
+  "tags"                        => :keep,
 
-  :relationships => {
-    :account_id                => :keep,
-    :code                      => { :type => :string, :length => 8, :chars => MyObfuscate::USERNAME_CHARS }
+  "relationships" => ConfigTableHash{
+    "account_id"                => :keep,
+    "code"                      => ConfigTableHash{ :type => :string, :length => 8, :chars => MyObfuscate::USERNAME_CHARS }
   }
 })
 obfuscator.fail_on_unspecified_columns = true # if you want it to require every column in the table to be in the above definition
@@ -55,7 +61,7 @@ obfuscator.obfuscate(STDIN, STDOUT)
 
 And to get an obfuscated dump:
 
-    mysqldump -c --add-drop-table --hex-blob -u user -ppassword database | ruby obfuscator.rb > obfuscated_dump.sql
+    mysqldump -c --add-drop-table --hex-blob -u user -ppassword database | obfuscator > obfuscated_dump.sql
 
 Note that the -c option on mysqldump is required to use my_obfuscator.  Additionally, the default behavior of mysqldump
 is to output special characters. This may cause trouble, so you can request hex-encoded blob content with --hex-blob.
@@ -84,12 +90,9 @@ If you don't want to type all those table names and column names into your obfus
 you can use my_obfuscate to do some of that work for you. It can consume your database dump file and create a "scaffold" for the script.
 To run my_obfuscate in this mode, start with an "empty" scaffolder.rb script as follows:
 
-```ruby
-#!/usr/bin/env ruby
-require "rubygems"
-require "my_obfuscate"
+```crystal
 
-obfuscator = MyObfuscate.new({})
+obfuscator = MyObfuscate.new(MyObfuscate::ConfigHash{})
 obfuscator.scaffold(STDIN, STDOUT)
 ```
 
@@ -125,7 +128,9 @@ Scaffolding also works if you have a partial configuration.  If your configurati
 
 ## Thanks
 
-Thanks to Honk for the original gem, Iteration Labs for prior maintenance work, and Pivotal Labs for patches and updates!
+Forked from [https://github.com/cantino/my_obfuscate](https://github.com/cantino/my_obfuscate)
+
+Thanks to all of the authors and contributors of the original Ruby gem
 
 ## LICENSE
 
