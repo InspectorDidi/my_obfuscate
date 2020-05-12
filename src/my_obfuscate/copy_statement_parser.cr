@@ -29,15 +29,15 @@ class MyObfuscate
             STDERR.puts "Deprecated: #{current_table_name} was not specified in the config.  A future release will cause this to be an error.  Please specify the table definition or set it to :keep."
           end
 
-          output_io.write line
+          output_io.print(line)
         elsif line.match /^\\\.$/
           inside_copy_statement = false
 
-          output_io.write(line)
+          output_io.print(line)
         elsif inside_copy_statement
           output_io.puts(obfuscator.obfuscate_bulk_insert_line(line, current_table_name, current_columns))
         else
-          output_io.write(line)
+          output_io.print(line)
         end
       end
     end

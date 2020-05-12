@@ -140,14 +140,14 @@ Spectator.describe MyObfuscate::ConfigApplicator do
    end
 
     it "should keep the value when given an unknown type, but should display a warning" do
-      # $stderr = error_output = StringIO.new
+      # $stderr = error_output = IO::Memory.new
       new_row = MyObfuscate::ConfigApplicator.apply_table_config(["blah", "something_else", "5"], MyObfuscate::ConfigTableHash{"b" => MyObfuscate::ConfigColumnHash{:type => :unknown_type}}, ["a", "b", "c"])
       # $stderr = STDERR
       expect(new_row.size).to eq(3)
       expect(new_row[1]).to eq("something_else")
       # FIXME
       # error_output.rewind
-      # expect(error_output.read).to match(/Keeping a column value by.*?unknown_type/)
+      # expect(error_output.gets_to_end).to match(/Keeping a column value by.*?unknown_type/)
     end
 
     it "should be able to substitute lorem ipsum text" do

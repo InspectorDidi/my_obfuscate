@@ -54,13 +54,13 @@ class MyObfuscate
                          end
   end
 
-  # Read an input stream and dump out an obfuscated output stream.  These streams could be StringIO objects, Files,
+  # Read an input stream and dump out an obfuscated output stream.  These streams could be any class implementing IO abstract class.
   # or STDIN and STDOUT.
   def obfuscate(input_io, output_io)
     database_helper.parse(self, config, input_io, output_io)
   end
 
-  # Read an input stream and dump out a config file scaffold.  These streams could be StringIO objects, Files,
+  # Read an input stream and dump out a config file scaffold.  These streams could be any class implementing IO abstract class.
   # or STDIN and STDOUT.
   def scaffold(input_io, output_io)
     database_helper.generate_config(self, config, input_io, output_io)

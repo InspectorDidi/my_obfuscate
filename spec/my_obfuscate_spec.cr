@@ -1,17 +1,5 @@
 require "./spec_helper"
 
-class StringIO < IO::Memory
-  def write(string : String)
-    write(string.to_slice)
-  end
-
-  def read : String
-    slice = Bytes.new(size)
-    read(slice)
-    String.new(slice)
-  end
-end
-
 Spectator.describe MyObfuscate do
   describe "MyObfuscate.reassembling_each_insert" do
     it "should yield each subinsert and reassemble the result" do
@@ -36,7 +24,7 @@ Spectator.describe MyObfuscate do
   describe "#obfuscate" do
     describe "when using Postgres" do
       let(dump) do
-        StringIO.new(<<-'SQL')
+        IO::Memory.new(<<-'SQL')
           COPY some_table (id, email, name, something, age) FROM stdin;
           1	hello	monkey	moose	14
           \.
@@ -94,10 +82,10 @@ Spectator.describe MyObfuscate do
       end
 
       let(output_string) do
-        output = StringIO.new
+        output = IO::Memory.new
         obfuscator.obfuscate(dump, output)
         output.rewind
-        output.read
+        output.gets_to_end
       end
 
       let(scaffolder) do
@@ -134,10 +122,10 @@ Spectator.describe MyObfuscate do
       end
 
       let(scaffold_output_string) do
-        output = StringIO.new
+        output = IO::Memory.new
         scaffolder.scaffold(dump, output)
         output.rewind
-        output.read
+        output.gets_to_end
       end
 
       it "is able to obfuscate single column tables" do
@@ -164,7 +152,7 @@ Spectator.describe MyObfuscate do
 
       context "when dump contains INSERT statement" do
         let(dump) do
-          StringIO.new(<<-SQL)
+          IO::Memory.new(<<-SQL)
           INSERT INTO some_table (email, name, something, age) VALUES ('','', '', 25);
           SQL
         end
@@ -189,12 +177,12 @@ Spectator.describe MyObfuscate do
         it "should accept an IO object for input and output, and copy the input to the output" do
           ddo = MyObfuscate.new
           string = "hello, world\nsup?"
-          input = StringIO.new(string)
-          output = StringIO.new
+          input = IO::Memory.new(string)
+          output = IO::Memory.new
           ddo.obfuscate(input, output)
           input.rewind
           output.rewind
-          expect(output.read).to eq(string)
+          expect(output.gets_to_end).to eq(string)
         end
       end
 
@@ -203,7 +191,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{
@@ -221,7 +209,7 @@ Spectator.describe MyObfuscate do
               }
             }
           })
-          output = StringIO.new
+          output = IO::Memory.new
 
           expect_raises(RuntimeError) do
             ddo.obfuscate(database_dump, output)
@@ -238,7 +226,7 @@ Spectator.describe MyObfuscate do
           INSERT INTO `one_more_table` (`a`, `password`, `c`, `d,d`) VALUES ('hello','kjhjd^&dkjh', 'aawefjkafe', 'wadus'), ('hello1','kjhj!', 892938, 'tradus'), ('hello2','moose!!', NULL, NULL);
           INSERT INTO `an_ignored_table` (`col`, `col2`) VALUES ('hello','kjhjd^&dkjh'), ('hello1','kjhj!'), ('hello2','moose!!');
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
 
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
@@ -272,10 +260,10 @@ Spectator.describe MyObfuscate do
               },
             }
           })
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.obfuscate(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should be able to truncate tables" do
@@ -291,7 +279,7 @@ Spectator.describe MyObfuscate do
         # it "should ignore tables that it doesn't know about, but should warn" do
         #   expect(output_string).to contain("INSERT INTO `an_ignored_table` (`col`, `col2`) VALUES ('hello','kjhjd^&dkjh'), ('hello1','kjhj!'), ('hello2','moose!!');")
         #   error_output.rewind
-        #   expect(error_output.read).to match(/an_ignored_table was not specified in the config/)
+        #   expect(error_output.gets_to_end).to match(/an_ignored_table was not specified in the config/)
         # end
 
         it "should obfuscate the tables" do
@@ -317,7 +305,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
               INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54),('dontmurderme@direwolf.com','direwolf', 'somethingelse3', 44);
           SQL
-          StringIO.new(string)
+          IO::Memory.new(string)
         end
 
         let(ddo) do
@@ -347,14 +335,14 @@ Spectator.describe MyObfuscate do
 
         it "should raise an exception when an unspecified column is found" do
           expect_raises(RuntimeError, /column 'something' defined/i) do
-            ddo.obfuscate(database_dump, StringIO.new)
+            ddo.obfuscate(database_dump, IO::Memory.new)
           end
         end
 
         it "should accept columns defined in globally_kept_columns" do
           ddo.globally_kept_columns = %w[something]
           expect {
-            ddo.obfuscate(database_dump, StringIO.new)
+            ddo.obfuscate(database_dump, IO::Memory.new)
           }.not_to raise_error
         end
       end
@@ -364,7 +352,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT IGNORE INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
-          StringIO.new(string)
+          IO::Memory.new(string)
         end
         let(output_string) do
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
@@ -382,10 +370,10 @@ Spectator.describe MyObfuscate do
             "another_table" => :truncate
           })
           ddo.globally_kept_columns = %w[something]
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should scaffold missing columns" do
@@ -408,7 +396,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`, `address1`, `address2`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25, '221B Baker St', 'Suite 100'),('joe@joe.com','joe', 'somethingelse2', 54, '1300 Pennsylvania Ave', '2nd floor');
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{
@@ -425,10 +413,10 @@ Spectator.describe MyObfuscate do
               "address1" => :street_address,
               "address2" => :secondary_address
             }})
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.obfuscate(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should obfuscate address1" do
@@ -447,7 +435,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`, `address1`, `address2`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25, '221B Baker St', 'Suite 100'),('joe@joe.com','joe', 'somethingelse2', 54, '1300 Pennsylvania Ave', '2nd floor');
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{
@@ -468,10 +456,10 @@ Spectator.describe MyObfuscate do
               "address1" => :street_address,
               "address2" => :secondary_address
             }})
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should enumerate extra columns" do
@@ -489,17 +477,17 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT IGNORE INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{:type => :email, :honk_email_skip => true},
               "name" => MyObfuscate::ConfigColumnHash{:type => :string, :length => 8, :chars => MyObfuscate::USERNAME_CHARS},
               "gender" => MyObfuscate::ConfigColumnHash{:type => :fixed, :string => "m"}
             }})
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should scaffold missing columns" do
@@ -517,7 +505,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{:type => :email, :honk_email_skip => true},
@@ -526,10 +514,10 @@ Spectator.describe MyObfuscate do
               "age" => :keep
             }
           })
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should say that everything is present and accounted for" do
@@ -544,7 +532,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT INTO `some_table` (`email`, `name`, `something`, `age_of_the_individual_who_is_specified_by_this_row_of_the_table`) VALUES ('bob@honk.com','bob', 'some\\'thin,ge())lse1', 25),('joe@joe.com','joe', 'somethingelse2', 54);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_other_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{:type => :email, :honk_email_skip => true},
@@ -554,10 +542,10 @@ Spectator.describe MyObfuscate do
             }})
           ddo.globally_kept_columns = %w[name]
 
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should scaffold all the columns that are not globally kept" do
@@ -582,12 +570,12 @@ Spectator.describe MyObfuscate do
           ddo = MyObfuscate.new
           ddo.database_type = :sql_server
           string = "hello, world\nsup?"
-          input = StringIO.new(string)
-          output = StringIO.new
+          input = IO::Memory.new(string)
+          output = IO::Memory.new
           ddo.obfuscate(input, output)
           input.rewind
           output.rewind
-          expect(output.read).to eq(string)
+          expect(output.gets_to_end).to eq(string)
         end
       end
 
@@ -596,7 +584,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
             INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
-          StringIO.new(string)
+          IO::Memory.new(string)
         end
 
         let(ddo) do
@@ -610,7 +598,7 @@ Spectator.describe MyObfuscate do
           ddo
         end
 
-        let(output) { StringIO.new }
+        let(output) { IO::Memory.new }
 
         it "should raise an error if a column name can't be found" do
           expect_raises(RuntimeError) do
@@ -620,7 +608,7 @@ Spectator.describe MyObfuscate do
       end
 
       context "when there is something to obfuscate" do
-        let(error_output) { StringIO.new }
+        let(error_output) { IO::Memory.new }
         let(output_string) do
           string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age], [bday]) VALUES (N'bob@honk.com',N'bob', N'some''thin,ge())lse1', 25, CAST(0x00009E1A00000000 AS DATETIME));
@@ -637,7 +625,7 @@ Spectator.describe MyObfuscate do
           INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello1',N'kjhj!');
           INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello2',N'moose!!');
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
 
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
@@ -673,13 +661,13 @@ Spectator.describe MyObfuscate do
           })
           ddo.database_type = :sql_server
 
-          output = StringIO.new
+          output = IO::Memory.new
           #FIXME
-          # STDERR = error_output = StringIO.new
+          # STDERR = error_output = IO::Memory.new
           ddo.obfuscate(database_dump, output)
           # $stderr = STDERR
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should be able to truncate tables" do
@@ -698,7 +686,7 @@ Spectator.describe MyObfuscate do
           expect(output_string).to contain("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello2',N'moose!!');")
           # FIXME
           # error_output.rewind
-          # expect(error_output.read).to match(/an_ignored_table was not specified in the config/)
+          # expect(error_output.gets_to_end).to match(/an_ignored_table was not specified in the config/)
         end
 
         it "should obfuscate the tables" do
@@ -728,7 +716,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT INTO [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
-          StringIO.new(string)
+          IO::Memory.new(string)
         end
 
         let(ddo) do
@@ -746,14 +734,14 @@ Spectator.describe MyObfuscate do
 
         it "should raise an exception when an unspecified column is found" do
           expect {
-            ddo.obfuscate(database_dump, StringIO.new)
+            ddo.obfuscate(database_dump, IO::Memory.new)
           }.to raise_error(/column 'something' defined/i)
         end
 
         it "should accept columns defined in globally_kept_columns" do
           ddo.globally_kept_columns = %w[something]
           expect {
-            ddo.obfuscate(database_dump, StringIO.new)
+            ddo.obfuscate(database_dump, IO::Memory.new)
           }.not_to raise_error
         end
       end
@@ -763,7 +751,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{:type => :email, :honk_email_skip => true},
@@ -771,10 +759,10 @@ Spectator.describe MyObfuscate do
             }})
           ddo.database_type = :sql_server
           ddo.globally_kept_columns = %w[something]
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should scaffold columns that can't be found" do
@@ -791,7 +779,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{:type => :email, :honk_email_skip => true},
@@ -802,10 +790,10 @@ Spectator.describe MyObfuscate do
             }})
           ddo.database_type = :sql_server
 
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should enumerate extra columns" do
@@ -818,7 +806,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{:type => :email, :honk_email_skip => true},
@@ -827,10 +815,10 @@ Spectator.describe MyObfuscate do
             }})
           ddo.database_type = :sql_server
 
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output_string = output.read
+          output_string = output.gets_to_end
         end
 
         it "should scaffold columns that can't be found" do
@@ -848,7 +836,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{
@@ -866,10 +854,10 @@ Spectator.describe MyObfuscate do
           })
           ddo.database_type = :sql_server
 
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output.read
+          output.gets_to_end
         end
 
         it "should say that everything is present and accounted for" do
@@ -884,7 +872,7 @@ Spectator.describe MyObfuscate do
           string =<<-SQL
           INSERT [dbo].[some_table] ([email], [name], [something], [age]) VALUES ('bob@honk.com','bob', 'some''thin,ge())lse1', 25);
           SQL
-          database_dump = StringIO.new(string)
+          database_dump = IO::Memory.new(string)
           ddo = MyObfuscate.new(MyObfuscate::ConfigHash{
             "some_other_table" => MyObfuscate::ConfigTableHash{
               "email" => MyObfuscate::ConfigColumnHash{:type => :email, :honk_email_skip => true},
@@ -895,10 +883,10 @@ Spectator.describe MyObfuscate do
           ddo.database_type = :sql_server
           ddo.globally_kept_columns = %w[age]
 
-          output = StringIO.new
+          output = IO::Memory.new
           ddo.scaffold(database_dump, output)
           output.rewind
-          output_string = output.read
+          output_string = output.gets_to_end
         end
 
         it "should scaffold all the columns that are not globally kept" do

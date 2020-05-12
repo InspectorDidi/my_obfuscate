@@ -25,32 +25,32 @@ require "my_obfuscate"
 
 obfuscator = MyObfuscate.new(MyObfuscate::ConfigHash{
   "people" => MyObfuscate::ConfigTableHash{
-    "email"                     => ConfigTableHash{ :type => :email, :skip_regexes => [/^[\w\.\_]+@my_company\.com$/i] },
+    "email"                     => MyObfuscate::ConfigColumnHash{ :type => :email, :skip_regexes => [/^[\w\.\_]+@my_company\.com$/i] },
     "ethnicity"                 => :keep,
-    "crypted_password"          => ConfigTableHash{ :type => :fixed, :string => "SOME_FIXED_PASSWORD_FOR_EASE_OF_DEBUGGING" },
-    "salt"                      => ConfigTableHash{ :type => :fixed, :string => "SOME_THING" },
+    "crypted_password"          => MyObfuscate::ConfigColumnHash{ :type => :fixed, :string => "SOME_FIXED_PASSWORD_FOR_EASE_OF_DEBUGGING" },
+    "salt"                      => MyObfuscate::ConfigColumnHash{ :type => :fixed, :string => "SOME_THING" },
     "remember_token"            => :null,
     "remember_token_expires_at" => :null,
-    "age"                       => ConfigTableHash{ :type => :null, :unless => ->(person : MyObfuscate::ConfigAplicator::RowAsHash) { person["email"] == "hello@example.com" } },
+    "age"                       => MyObfuscate::ConfigColumnHash{ :type => :null, :unless => ->(person : MyObfuscate::ConfigApplicator::RowAsHash) { person["email"] == "hello@example.com" } },
     "photo_file_name"           => :null,
     "photo_content_type"        => :null,
     "photo_file_size"           => :null,
     "photo_updated_at"          => :null,
-    "postal_code"               => ConfigTableHash{ :type => :fixed, :string => "94109", :unless => ->(person : MyObfuscate::ConfigAplicator::RowAsHash) { person[:postal_code] == "12345"} },
+    "postal_code"               => MyObfuscate::ConfigColumnHash{ :type => :fixed, :string => "94109", :unless => ->(person : MyObfuscate::ConfigApplicator::RowAsHash) { person["postal_code"] == "12345"} },
     "name"                      => :name,
     "full_address"              => :address,
-    "bio"                       => ConfigTableHash{ :type => :lorem, :number => 4 },
-    "relationship_status"       => ConfigTableHash{ :type => :fixed, :one_of => ["Single", "Divorced", "Married", "Engaged", "In a Relationship"] },
-    "has_children"              => ConfigTableHash{ :type => :integer, :between => 0..1 },
+    "bio"                       => MyObfuscate::ConfigColumnHash{ :type => :lorem, :number => 4 },
+    "relationship_status"       => MyObfuscate::ConfigColumnHash{ :type => :fixed, :one_of => ["Single", "Divorced", "Married", "Engaged", "In a Relationship"] },
+    "has_children"              => MyObfuscate::ConfigColumnHash{ :type => :integer, :between => 0..1 },
   },
 
   "invites"                     => :truncate,
   "invite_requests"             => :truncate,
   "tags"                        => :keep,
 
-  "relationships" => ConfigTableHash{
+  "relationships" => MyObfuscate::ConfigTableHash{
     "account_id"                => :keep,
-    "code"                      => ConfigTableHash{ :type => :string, :length => 8, :chars => MyObfuscate::USERNAME_CHARS }
+    "code"                      => MyObfuscate::ConfigColumnHash{ :type => :string, :length => 8, :chars => MyObfuscate::USERNAME_CHARS }
   }
 })
 obfuscator.fail_on_unspecified_columns = true # if you want it to require every column in the table to be in the above definition
