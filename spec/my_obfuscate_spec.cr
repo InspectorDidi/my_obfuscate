@@ -275,12 +275,13 @@ Spectator.describe MyObfuscate do
           expect(output_string).to contain("INSERT INTO `some_table_to_keep` (`a`, `b`, `c`, `d`) VALUES (1,2,3,4), (5,6,7,8);")
         end
 
-        # FIXME
-        # it "should ignore tables that it doesn't know about, but should warn" do
-        #   expect(output_string).to contain("INSERT INTO `an_ignored_table` (`col`, `col2`) VALUES ('hello','kjhjd^&dkjh'), ('hello1','kjhj!'), ('hello2','moose!!');")
-        #   error_output.rewind
-        #   expect(error_output.gets_to_end).to match(/an_ignored_table was not specified in the config/)
-        # end
+        it "should ignore tables that it doesn't know about, but should warn" do
+          expect(output_string).to contain("INSERT INTO `an_ignored_table` (`col`, `col2`) VALUES ('hello','kjhjd^&dkjh'), ('hello1','kjhj!'), ('hello2','moose!!');")
+
+          error_output = Helpers::Log.io
+          error_output.rewind
+          expect(error_output.gets_to_end).to match(/an_ignored_table was not specified in the config/)
+        end
 
         it "should obfuscate the tables" do
           expect(output_string).to contain("INSERT INTO `some_table` (`email`, `name`, `something`, `age`) VALUES (")
@@ -662,10 +663,7 @@ Spectator.describe MyObfuscate do
           ddo.database_type = :sql_server
 
           output = IO::Memory.new
-          #FIXME
-          # STDERR = error_output = IO::Memory.new
           ddo.obfuscate(database_dump, output)
-          # $stderr = STDERR
           output.rewind
           output.gets_to_end
         end
@@ -684,9 +682,10 @@ Spectator.describe MyObfuscate do
           expect(output_string).to contain("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello',N'kjhjd^&dkjh');")
           expect(output_string).to contain("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello1',N'kjhj!');")
           expect(output_string).to contain("INSERT [dbo].[an_ignored_table] ([col], [col2]) VALUES (N'hello2',N'moose!!');")
-          # FIXME
-          # error_output.rewind
-          # expect(error_output.gets_to_end).to match(/an_ignored_table was not specified in the config/)
+
+          error_output = Helpers::Log.io
+          error_output.rewind
+          expect(error_output.gets_to_end).to match(/an_ignored_table was not specified in the config/)
         end
 
         it "should obfuscate the tables" do

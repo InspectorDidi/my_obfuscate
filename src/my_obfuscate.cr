@@ -1,11 +1,13 @@
 require "digest/md5"
 require "faker"
 require "walker_method"
+require "log"
 
 # Class for obfuscating MySQL dumps. This can parse mysqldump outputs when using the -c option, which includes
 # column names in the insert statements.
 class MyObfuscate
   property config, globally_kept_columns = Array(String).new, fail_on_unspecified_columns = false, database_type = :mysql, scaffolded_tables
+
   NUMBER_CHARS = "1234567890"
   USERNAME_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_" + NUMBER_CHARS
   SENSIBLE_CHARS = USERNAME_CHARS + "+-=[{]}/?|!@#$%^&*()`~"
@@ -38,6 +40,18 @@ class MyObfuscate
   def initialize(configuration = ConfigHash.new)
     @config = configuration
     @scaffolded_tables = {} of String => Int32
+  end
+
+  def self.log
+    @@log ||= begin
+                  backend = ::Log::IOBackend.new(STDERR)
+                  ::Log.builder.bind("*", :warning, backend)
+                  ::Log.for(self)
+                end
+  end
+
+  def self.log=(other)
+    @@log = other
   end
 
   def fail_on_unspecified_columns?

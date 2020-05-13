@@ -113,7 +113,7 @@ class MyObfuscate
                      when :keep
                        row[index]?
                      else
-                       STDERR.puts "Keeping a column value by providing an unknown type (#{definition[:type]}) is deprecated.  Use :keep instead."
+                       Log.warn { "Keeping a column value by providing an unknown type (#{definition[:type]}) is deprecated.  Use :keep instead." }
                        row[index]?
                      end
       end
@@ -137,7 +137,7 @@ class MyObfuscate
       elsif conditional_method == :nil
         Proc(RowAsHash, Bool).new { row[index].nil? }
       else
-        raise "Error" # TODO Check if this is right
+        raise RuntimeError.new
       end
     end
 

@@ -26,7 +26,7 @@ class MyObfuscate
           current_columns = table_data["column_names"].as(ColumnList)
 
           if !config[current_table_name]
-            STDERR.puts "Deprecated: #{current_table_name} was not specified in the config.  A future release will cause this to be an error.  Please specify the table definition or set it to :keep."
+            Log.warn { "Deprecated: #{current_table_name} was not specified in the config.  A future release will cause this to be an error.  Please specify the table definition or set it to :keep." }
           end
 
           output_io.print(line)
