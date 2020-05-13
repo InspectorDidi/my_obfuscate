@@ -170,6 +170,21 @@ Spectator.describe MyObfuscate do
       it "should not scaffold a columns that is globally kept" do
         expect(scaffold_output_string).not_to match(/"age"\s+=>\s+:keep.+scaffold/)
       end
+
+      context "when dump contains a '.' at the end of the line" do
+        let(dump) do
+          IO::Memory.new(<<-'SQL')
+            COPY another_table (a, b, c, d) FROM stdin;
+            1    2       3       4
+            1    2       3       .
+            \.
+            SQL
+        end
+
+        it "should not fail if a insert statement ends in a '.''" do
+          expect(output_string).not_to match(/1\t2\t3\t\./)
+        end
+      end
     end
 
     describe "when using MySQL" do
