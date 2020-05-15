@@ -13,7 +13,8 @@ class MyObfuscate
     def rows_to_be_inserted(line) : Array(Array(String?))
       row = line.split(/\t/)
 
-      row << row.pop.strip
+      last = row.size - 1
+      row[last] = row[last].strip
 
       row = row.map do |value|
         if value == "\\N"
