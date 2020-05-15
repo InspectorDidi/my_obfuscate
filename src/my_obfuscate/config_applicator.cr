@@ -19,7 +19,7 @@ class MyObfuscate
 
       table_config.each do |column, definition|
         index = columns.index(column)
-        raise "ERROR" unless index
+        raise "ERROR: Column #{column} does not exist" unless index
 
         definition = { :type => definition } if definition.is_a?(Symbol)
 
@@ -32,7 +32,7 @@ class MyObfuscate
         if definition.has_key?(:unless)
           proc_or_symbol = definition[:unless]
 
-          raise "ERROR" unless proc_or_symbol.is_a?(BoolProc | Symbol)
+          raise "ERROR: 'unless' definition does not return Bool or Symbol" unless proc_or_symbol.is_a?(BoolProc | Symbol)
           unless_check = make_conditional_method(proc_or_symbol, index, row)
 
           next if unless_check.call(row_hash)
@@ -41,7 +41,7 @@ class MyObfuscate
         if definition.has_key?(:if)
           if_definition = definition[:if]
 
-          raise "ERROR" unless if_definition.is_a?(BoolProc | Symbol)
+          raise "ERROR: 'if' definition does not return Bool or Symbol" unless if_definition.is_a?(BoolProc | Symbol)
 
           if_check = make_conditional_method(if_definition, index, row)
 
@@ -151,7 +151,7 @@ class MyObfuscate
               elsif length_or_range.is_a?(Range)
                 length_or_range
               else
-                raise "ERROR"
+                raise "ERROR: 'length' or 'range' es not an Integer or a Range"
               end
       times = random_integer(range)
       random_string = ""
