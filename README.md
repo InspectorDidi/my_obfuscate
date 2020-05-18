@@ -55,7 +55,7 @@ obfuscator = MyObfuscate.new(MyObfuscate::ConfigHash{
 })
 obfuscator.fail_on_unspecified_columns = true # if you want it to require every column in the table to be in the above definition
 obfuscator.globally_kept_columns = %w[id created_at updated_at] # if you set fail_on_unspecified_columns, you may want this as well
-# If you'd like to also validate against your schema.rb file to make sure all fields and tables are present, see https://gist.github.com/cantino/5376e73b0ad806dc4da4
+# If you'd like to also validate against your schema.cr file to make sure all fields and tables are present, see https://gist.github.com/cantino/5376e73b0ad806dc4da4
 obfuscator.obfuscate(STDIN, STDOUT)
 ```
 
@@ -77,18 +77,18 @@ builtin SQL Server support by specifying:
 
 If using Postgres, use pg_dump to get a dump:
 
-    pg_dump database | ruby obfuscator.rb > obfuscated_dump.sql
+    pg_dump database | ruby obfuscator > obfuscated_dump.sql
 
 ## Types
 
 Available types include: email, string, lorem, name, first_name, last_name, address, street_address, secondary_address, city, state,
 zip_code, phone, company, ipv4, ipv6, url, integer, fixed, null, and keep.
 
-## Helping with creation of the "obfuscator.rb" script
+## Helping with creation of the "obfuscator.cr" script
 
-If you don't want to type all those table names and column names into your obfuscator.rb script,
+If you don't want to type all those table names and column names into your obfuscator.cr script,
 you can use my_obfuscate to do some of that work for you. It can consume your database dump file and create a "scaffold" for the script.
-To run my_obfuscate in this mode, start with an "empty" scaffolder.rb script as follows:
+To run my_obfuscate in this mode, start with an "empty" scaffolder.cr script as follows:
 
 ```crystal
 
@@ -97,8 +97,8 @@ obfuscator.scaffold(STDIN, STDOUT)
 ```
 
 Then feed in your database dump:
-  mysqldump -c  --hex-blob -u user -ppassword database | ruby scaffolder.rb > obfuscator_scaffold.rb_snippet
-  pg_dump database | ruby scaffolder.rb > obfuscator_scaffold.rb_snippet
+  mysqldump -c  --hex-blob -u user -ppassword database | ruby scaffolder > obfuscator_scaffold_snippet
+  pg_dump database | ruby scaffolder > obfuscator_scaffold_snippet
 
 The output will be a series of configuration statements of the form:
     "table_name" => {
@@ -107,6 +107,48 @@ The output will be a series of configuration statements of the form:
   	... etc.
 
 Scaffolding also works if you have a partial configuration.  If your configuration is missing some tables or some columns, a call to 'scaffold' will pass through the configuration that exists and augment it with scaffolding for the missing tables or columns.
+
+## Speed
+
+The main motivation to rewrite this from Ruby to Crystal was speed, here is an example obfuscating 16 tables and 15 columns in total.
+
+### MySQL dump 160MB (gzip'ed)
+
+#### Ruby
+
+```
+real    1m56.980s
+user    1m57.080s
+sys     0m2.660s
+```
+
+#### Crystal
+
+```
+real    0m26.579s
+user    0m28.220s
+sys     0m1.748s
+```
+
+### MySQL dump 1.4G
+
+#### Ruby
+
+```
+real    1m52.974s
+user    1m49.824s
+sys     0m4.560s
+```
+
+#### Crystal
+
+```
+real    0m17.642s
+user    0m17.952s
+sys     0m2.192s
+```
+
+That's about 6.40x speedup compared to the Ruby version.
 
 ## Changes
 
